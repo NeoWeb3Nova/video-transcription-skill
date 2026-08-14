@@ -13,11 +13,13 @@ metadata:
 
 # Video Transcription
 
-Turn a public video URL or local video into evidence-grounded, timestamped text.
+Turn a public video URL or local video into evidence-grounded, timestamped text. For production workflows, request a user-provided overview first and reconcile it with the linked video's metadata, captions, and visual evidence before downstream work.
 
 ## Workflow
 
-1. Run the preflight:
+1. Collect the user's overview before production. Save it as a project-level `source/user_overview.md`; if missing, stop before visual assets, translation, TTS, or rendering.
+
+2. Run the preflight:
 
 ```bash
 python3 "${SKILL_DIR}/scripts/setup.py" --json
@@ -29,7 +31,7 @@ python3 "${SKILL_DIR}/scripts/setup.py" --json
 python3 "${SKILL_DIR}/scripts/setup.py"
 ```
 
-2. Run the bundled extractor:
+3. Run the bundled extractor:
 
 ```bash
 python3 "${SKILL_DIR}/scripts/watch.py" "<video-url-or-path>"
@@ -37,9 +39,11 @@ python3 "${SKILL_DIR}/scripts/watch.py" "<video-url-or-path>"
 
 Use `--detail transcript` for transcript-only work, `--detail balanced` for normal speech + visual context, and `--start`/`--end` for a specific section.
 
-3. Use the report's timestamped transcript as the source text. If frame paths are listed, inspect the relevant frames with the host's image/vision tool before making claims about on-screen content.
+4. Use the report's timestamped transcript as the source text. If frame paths are listed, inspect the relevant frames with the host's image/vision tool before making claims about on-screen content.
 
-4. Clean and structure the transcript:
+5. Reconcile the overview with the YouTube title, metadata, transcript, and relevant frames. Save `work/content_reconciliation.md` with `confirmed`, `overview_only`, `source_only`, and `conflict` sections. Resolve all conflicts before production; do not treat overview-only claims as source quotations.
+
+6. Clean and structure the transcript:
 
 - remove rolling subtitle duplicates, filler loops, and broken line wrapping;
 - restore punctuation and coherent paragraphs;
@@ -48,7 +52,7 @@ Use `--detail transcript` for transcript-only work, `--detail balanced` for norm
 - distinguish verbatim quotes from edited summaries;
 - translate directly with the language model when requested; do not install translation libraries.
 
-5. Choose the requested output:
+7. Choose the requested output:
 
 - full cleaned transcript;
 - transcript plus summary and key points;
