@@ -106,6 +106,40 @@ python3 "${SKILL_DIR}/scripts/watch.py" VIDEO --no-whisper
 - For long videos, process a named section first rather than spending tokens on a sparse full scan.
 - Do not claim that a transcript exists when captions and ASR both failed; report the limitation.
 
+## Portable production extension
+
+Use this extension when the repository is used to produce a finished translated or illustrated video rather than only a transcript.
+
+### Artifact contract
+
+Keep these layers separate and auditable:
+
+1. `source/` — original URL/path, metadata, captions, thumbnail, user overview, and provenance notes.
+2. `work/content_reconciliation.md` — confirmed claims, overview-only claims, source-only details, and conflicts.
+3. `source/raw/` — immutable or lightly cleaned source transcript with timestamps and uncertainty notes.
+4. `scripts/` — canonical translated script with stable paragraph identifiers and matching order.
+5. `assets/` — background, opening, inline illustrations, and an independently designed cover.
+6. `audio/` and `output/` — generated narration, samples, final video, and machine-readable QA manifests.
+7. `publish/` — platform copy and title recommendations, separate from the source and render layers.
+
+Never treat a filename or upload order as proof of an asset's semantic role. A cover is not the first inline image, and a text-heavy cover must never become the persistent subtitle background.
+
+### Production gates
+
+- Preserve the raw source before editorial cleanup and record actual duration, language, caption source, and uncertainty warnings.
+- Reconcile the user's overview with source metadata, captions, and inspected visual evidence before translation, image generation, TTS, or rendering.
+- Create `work/visual_brief.md` before any image call. It must contain the source thesis/mechanism, exact approved title, identity references, supported metaphors, and forbidden interpretations.
+- For identity-bearing subjects, pass the source portrait/thumbnail and the strongest approved project asset as `reference_image_urls`. Identity is a hard gate; a generic substitute fails even if composition and dimensions pass.
+- The cover must show the source mechanism, not only its mood. For problem-solving content require a visible causal chain such as `problem fragments -> calm analysis -> solution route`.
+- For exact Chinese cover wording, use deterministic typography with a verified CJK font. Treat the cover as a poster: kicker/section marker, dominant headline with intentional line breaks and contrasting emphasis, subordinate support line, and at most one mechanism-reinforcing auxiliary sequence. QA at full size and 320x180.
+- Keep image mode (`auto` or `prompt`) explicit in the project checkpoint. Approval timeouts or interrupted turns are not approval.
+- For bilingual narration, preserve stable paragraph IDs across translation, TTS, subtitle timing, concatenation, and rendering. Validate numeric ordering naturally (`para11` after `para10`, never lexical misordering).
+- After full render, audit every TTS event against subtitle coverage, check audio energy at start/middle/end checkpoints, validate final duration, and write a machine-readable manifest with `ok: true`. Final preflight fails closed if the manifest is missing, invalid, or false.
+
+### Completion definition
+
+The production workflow is complete only when the source remains auditable, the source/translation paragraph counts and order match, the cover independently passes identity/topic/typography QA and explicit approval, every derivative is synchronized, the final render passes the machine-readable sync audit, and final preflight passes.
+
 ## Runtime files
 
 The scripts write temporary downloads, extracted audio, subtitles, and frames under a temporary working directory unless `--out-dir` is supplied. Delete the working directory after follow-up questions are finished.
