@@ -9,6 +9,7 @@ A portable Hermes skill for turning video URLs or local video files into timesta
 - extracts selected video frames with `ffmpeg` for visual context;
 - removes rolling subtitle duplicates and formats timestamped text;
 - guides the agent to distinguish transcript evidence, edited synthesis, and uncertain ASR.
+- production visual workflows now enforce identity references, source-mechanism cover checks, and poster-grade Chinese thumbnail typography QA.
 
 ## Install for Hermes
 

@@ -43,7 +43,16 @@ Use `--detail transcript` for transcript-only work, `--detail balanced` for norm
 
 5. Reconcile the overview with the YouTube title, metadata, transcript, and relevant frames. Save `work/content_reconciliation.md` with `confirmed`, `overview_only`, `source_only`, and `conflict` sections. Resolve all conflicts before production; do not treat overview-only claims as source quotations.
 
-6. Clean and structure the transcript:
+6. If the workflow includes generated visual assets, create `work/visual_brief.md` before any image call. The brief must state the source mechanism, approved title, identity references, supported visual metaphors, and forbidden interpretations. For an identity-bearing subject, pass the source portrait/thumbnail and the strongest approved project asset as `reference_image_urls`; never substitute soft wording such as `Jim Rohn-like` or `mature motivational speaker` for identity control.
+
+7. Apply two visual hard gates before audio or rendering:
+
+- **Identity gate:** compare every generated subject against the references. If it reads as a generic substitute or changes critical observable cues, reject it even when dimensions and composition pass.
+- **Cover-to-topic gate:** the cover must show the source's causal mechanism, not merely its mood. For problem-solving content, require a visible chain such as `problem fragments -> calm analysis -> solution route`; a generic road, staircase, or inspirational portrait fails.
+
+For Chinese covers, use a deterministic text layer when exact wording matters. Treat the cover as a promotional poster, not a subtitle overlay: use a small kicker/section marker, a dominant headline with intentional line breaks and contrasting emphasis, one subordinate supporting line, and at most one thematic auxiliary sequence such as `问题 -> 冷静分析 -> 解决方案`. Align the system to a visible grid with an anchor rule or divider. Inspect the final raster at full size and 320x180; exact but tiny, flat, clipped, low-contrast, or subordinate title text fails. Keep user approval pending until the actual thumbnail is approved.
+
+8. Clean and structure the transcript:
 
 - remove rolling subtitle duplicates, filler loops, and broken line wrapping;
 - restore punctuation and coherent paragraphs;
@@ -52,7 +61,7 @@ Use `--detail transcript` for transcript-only work, `--detail balanced` for norm
 - distinguish verbatim quotes from edited summaries;
 - translate directly with the language model when requested; do not install translation libraries.
 
-7. Choose the requested output:
+9. Choose the requested output:
 
 - full cleaned transcript;
 - transcript plus summary and key points;
