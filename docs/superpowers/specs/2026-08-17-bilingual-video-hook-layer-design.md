@@ -12,47 +12,61 @@ Add a reusable editorial hook layer to the bilingual video-production workflow:
 2. an ending reflection/action hook after the source speech;
 3. a light channel CTA after the ending hook.
 
-The hooks must increase viewer retention and create a listen-to-action loop without pretending to be quotations from the source speaker or making unverifiable promises.
+The opening hook must use one fixed catalog entry, selected at production time by the current clock second. It must create an immediate emotional trigger without pretending to be a source quotation. The catalog is intentionally topic-independent so the channel develops a recognizable recurring ritual.
 
 ## Approved copy templates
 
-### Opening hook
+### Fixed opening-hook catalog
 
-Chinese:
+The exact seven Chinese strings are immutable and must not be rewritten per topic:
 
-> 这30分钟，不是让你听得更多，而是帮你在【主题】上，做出一个更好的选择。现在，安静下来，我们开始。
+1. `睡前30分钟，听完这段话，明天开始改变自己。`
+2. `每天睡前30分钟，悄悄改变你的人生。`
+3. `睡前30分钟，听进去，人生就会开始转向。`
+4. `睡前30分钟，给自己一次改变人生的机会。`
+5. `睡前30分钟，别让今天的你，毁掉明天的人生。`
+6. `睡前30分钟，听懂了，你就不会再是原来的自己。`
+7. `每天睡前30分钟，让自己一步一步变得不一样。`
 
-English:
+The English subtitle is generated from the selected fixed Chinese string and is stored with the project selection. It is not used to select a different hook.
 
-> These 30 minutes are not about listening to more. They are about helping you make a better choice about 【topic】. Now, settle in. Let us begin.
+Selection algorithm:
 
-`【主题】` is an editorial action object, not necessarily the literal video title. Examples:
+```text
+hook_index = current_second % 7
+0 → catalog item 1
+1 → catalog item 2
+...
+6 → catalog item 7
+```
 
-- `相信自己` → `相信自己这件事`
-- `如何成为一个高效的人` → `真正高效这件事`
-- `默默强大自己` → `持续成长这件事`
+The selected index, source second, algorithm name, and exact Chinese/English strings are persisted in `work/hooks.json`. Retries, sample rendering, full rendering, and final audits reuse that persisted selection; they never reselect based on a later clock second.
+
+### Opening hook timing
+
+The selected opening hook is spoken after the 3-second opening card and before the source speech.
 
 ### Ending hook
 
-Chinese:
+Chinese default pattern:
 
-> 听完这段演讲，不算改变。真正的改变，发生在你接下来的那个选择里。今天，只选一个原则，把它变成一个具体行动。等下一次你再次分心、怀疑，或者想要放弃时，回来再听一遍。
+> 听完了，然后呢？如果你明天还是照旧，这30分钟就白听了。现在去做一件你一直不敢做的事，证明你说的“我可以”不是一句废话。
 
-English:
+English default pattern:
 
-> Listening to this speech is not change. Real change happens in the choice you make next. Choose one principle today and turn it into one specific action. When you feel distracted, doubtful, or ready to quit again, come back and listen once more.
+> You finished listening. Now what? If you live the same way tomorrow, these 30 minutes were wasted. Go do one thing you have been afraid to do, and prove that “I can” is not just empty words.
 
 ### CTA
 
-Chinese:
+Chinese default pattern:
 
-> 如果这段内容对你有帮助，欢迎订阅。下一次，用30分钟，继续把一个重要的原则，变成你生活中的行动。
+> 没有人会替你改变。现在订阅，下一次继续用30分钟，把一句话变成一个行动。
 
-English:
+English default pattern:
 
-> If this helped you, consider subscribing. Next time, spend 30 minutes turning another important principle into action in your life.
+> No one else will change your life for you. Subscribe now, and next time, spend 30 minutes turning another principle into action.
 
-The templates are defaults. A project may use topic-specific wording, but it must preserve the same promise boundary: no guaranteed life transformation, instant success, magic, or passive results.
+The seven strings are fixed by editorial decision. They are promotional framing, not quotations from Jim Rohn or claims made by the source speech. No additional topic-specific opening rewrite is allowed in the default workflow.
 
 ## Project data contract
 
@@ -62,7 +76,12 @@ Each new project contains `work/hooks.json`:
 {
   "version": 1,
   "source": "editorial_hook",
+  "hook_index": 2,
+  "selection_second": 16,
+  "selection_method": "current_second_mod_7",
   "topic": "相信自己",
+  "catalog_zh": "睡前30分钟，听进去，人生就会开始转向。",
+  "catalog_en": "Spend 30 minutes before bed listening closely, and your life will begin to turn.",
   "intro": {"zh": "...", "en": "..."},
   "outro": {"zh": "...", "en": "..."},
   "cta": {"zh": "...", "en": "..."}
@@ -172,4 +191,4 @@ A new project is complete only when:
 
 ## Scope exclusions
 
-This change does not add dynamic hook visuals, a new TTS engine, automatic hype generation, new cover assets, or retroactive rebuilds of completed projects.
+This change does not add dynamic hook visuals, a new TTS engine, automatic hype generation, new cover assets, or retroactive rebuilds of completed projects. It also does not force every topic into identical wording: the emotional trigger is selected per topic within the short/direct/agitating style.
