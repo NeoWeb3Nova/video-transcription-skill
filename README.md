@@ -9,7 +9,7 @@ A portable Hermes skill for turning video URLs or local video files into timesta
 - extracts selected video frames with `ffmpeg` for visual context;
 - removes rolling subtitle duplicates and formats timestamped text;
 - guides the agent to distinguish transcript evidence, edited synthesis, and uncertain ASR.
-- production visual workflows now enforce identity references, source-mechanism cover checks, and poster-grade Chinese thumbnail typography QA.
+- production visual workflows now enforce identity references, source-mechanism cover checks, model-typeset poster typography, and poster-grade Chinese thumbnail QA; see `references/cover-typography-policy.md`.
 
 ## Install for Hermes
 
@@ -83,6 +83,24 @@ python3 ~/.hermes/skills/video-transcription/scripts/watch.py VIDEO --detail tra
 ```
 
 See `SKILL.md` for the complete workflow and quality rules.
+
+## Bilingual video production pipeline
+
+`scripts/produce.py` turns a normalized bilingual script pair (`scripts/en.md` + `scripts/zh.md`, paragraph-aligned) into a narrated karaoke video:
+
+```bash
+uv venv .venv && uv pip install --python .venv/bin/python edge-tts
+.venv/bin/python scripts/produce.py manifest   # paragraph+sentence alignment check -> work/paras.json
+.venv/bin/python scripts/produce.py tts        # edge-tts narration + sentence events (71 paragraphs, resumable)
+.venv/bin/python scripts/produce.py timeline   # bilingual ASS + karaoke ASS
+.venv/bin/python scripts/produce.py audio      # concat narration -> audio/master.wav
+.venv/bin/python scripts/produce.py sample     # 15s sample render (user approval gate)
+.venv/bin/python scripts/produce.py full       # full render
+.venv/bin/python scripts/produce.py spotcheck  # automatic sync audit -> work/spotcheck.json (ok:true)
+.venv/bin/python scripts/produce.py preflight  # fail-closed gate report
+```
+
+The pipeline mirrors the proven run in `projects/youtube-977PU9FtGA0` (3s opening, 0.35s paragraph gaps, SentenceBoundary events, uniform karaoke `\k`, fontsdir `/mnt/c/Windows/Fonts`). Prerelease gates: cover approval (`work/cover_approval.txt`) and sample approval (`work/sample_approval.txt`) must be `approved`; the sync audit must pass before final preflight.
 
 ## License
 
