@@ -4,26 +4,47 @@ from __future__ import annotations
 
 import argparse
 import json
+from urllib.parse import parse_qs, urlparse
 import shutil
 from pathlib import Path
 
-from download import download
+from download import download, fetch_captions, is_url
 from transcribe import parse_vtt
 
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def canonical_youtube_slug(source: str) -> str | None:
+    parsed = urlparse(source)
+    video_id = parse_qs(parsed.query).get("v", [None])[0]
+    if not video_id and parsed.netloc.lower() in {"youtu.be", "www.youtu.be"}:
+        video_id = parsed.path.strip("/").split("/")[0]
+    return f"youtube-{video_id}" if video_id else None
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("source", help="YouTube URL or local video path")
-    parser.add_argument("--slug", required=True)
+    parser.add_argument("--slug", help="Custom slug for local input only")
     parser.add_argument("--workspace", type=Path, default=ROOT / "projects")
     args = parser.parse_args()
-    project = (args.workspace / args.slug).resolve()
+    canonical = canonical_youtube_slug(args.source) if is_url(args.source) else None
+    if canonical and args.slug and args.slug != canonical:
+        raise SystemExit(f"YouTube project slug must be {canonical}, not {args.slug}")
+    slug = canonical or args.slug
+    if not slug:
+        raise SystemExit("--slug is required for local video input")
+    project = (args.workspace / slug).resolve()
     for name in ("assets", "source/raw", "scripts", "work", "subs", "audio", "output"):
         (project / name).mkdir(parents=True, exist_ok=True)
 
-    fetched = download(args.source, project / "source/raw")
+    # ponytail: URL production only needs metadata/captions; download source
+    # video only for an explicitly local input or a later frame-analysis path.
+    fetched = (
+        fetch_captions(args.source, project / "source/raw")
+        if is_url(args.source)
+        else download(args.source, project / "source/raw")
+    )
     metadata = {"source": args.source, **fetched.get("info", {})}
     (project / "source/metadata.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n")
     if fetched.get("video_path"):

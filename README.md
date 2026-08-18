@@ -113,7 +113,7 @@ The pipeline mirrors the proven run in `projects/youtube-977PU9FtGA0` (3s openin
 Bootstrap a project from a URL or local video:
 
 ```bash
-python3 scripts/bootstrap_project.py https://www.youtube.com/watch?v=VIDEO_ID --slug youtube-VIDEO_ID
+python3 scripts/bootstrap_project.py https://www.youtube.com/watch?v=VIDEO_ID
 ```
 
 Complete `scripts/zh.md`, complete and approve `work/visual_brief.md`, choose `work/image_mode.txt`, and provide approved `assets/background.png` and `assets/opening.png`. Then render the gated 15-second sample:

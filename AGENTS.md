@@ -5,7 +5,8 @@ Read `SKILL.md` before producing video work.
 ## End-to-end entrypoints
 
 1. Bootstrap a project:
-   `python3 scripts/bootstrap_project.py <youtube-url-or-local-video> --slug <slug>`
+   YouTube URLs automatically use `projects/youtube-<video-id>`; local videos require `--slug <slug>`.
+   `python3 scripts/bootstrap_project.py <youtube-url-or-local-video> [--slug <slug>]`
 2. Complete `scripts/zh.md`, `work/visual_brief.md`, and obtain user approval for `work/image_mode.txt`, `work/cover_approval.txt`, and `work/sample_approval.txt`.
 3. Provide approved `assets/background.png` and `assets/opening.png` (1920x1080); do not invent approval markers.
 4. Render the gated preparation sample:
