@@ -19,6 +19,8 @@ git clone https://github.com/NeoWeb3Nova/video-transcription-skill.git ~/.hermes
 
 Restart Hermes or start a new session. The skill is then available automatically; it can also be loaded explicitly with `/skill video-transcription`.
 
+Claude Code / pi: clone the repository into the agent's workspace. `AGENTS.md` and `CLAUDE.md` provide the adapter instructions; the agent must read `SKILL.md` before production. The workflow does not depend on Hermes-only commands.
+
 ## Dependencies
 
 Linux/WSL:
@@ -26,7 +28,8 @@ Linux/WSL:
 ```bash
 sudo apt update
 sudo apt install ffmpeg
-python3 -m pip install --user yt-dlp
+uv venv .venv
+uv pip install --python .venv/bin/python edge-tts yt-dlp
 ```
 
 macOS:
@@ -104,6 +107,30 @@ uv venv .venv && uv pip install --python .venv/bin/python edge-tts
 The pipeline mirrors the proven run in `projects/youtube-977PU9FtGA0` (3s opening, 0.35s paragraph gaps, SentenceBoundary events, uniform karaoke `\k`, fontsdir `/mnt/c/Windows/Fonts`). Prerelease gates: cover approval (`work/cover_approval.txt`) and sample approval (`work/sample_approval.txt`) must be `approved`; the sync audit must pass before final preflight.
 
 `caption_qa` prefers PaddleOCR PP-OCRv6 (`PADDLEOCR_PYTHON=/home/neo/.cache/video-transcription-ocr/venv/bin/python`) and falls back to Tesseract. It verifies burned subtitles from rendered frames. If OCR is unavailable, it writes `manual_review_required` and preflight fails closed instead of claiming visual verification.
+
+## Portable end-to-end workflow
+
+Bootstrap a project from a URL or local video:
+
+```bash
+python3 scripts/bootstrap_project.py https://www.youtube.com/watch?v=VIDEO_ID --slug youtube-VIDEO_ID
+```
+
+Complete `scripts/zh.md`, complete and approve `work/visual_brief.md`, choose `work/image_mode.txt`, and provide approved `assets/background.png` and `assets/opening.png`. Then render the gated 15-second sample:
+
+```bash
+python3 scripts/run_pipeline.py --project projects/youtube-VIDEO_ID --step prepare
+```
+
+After the user writes `approved` to `work/sample_approval.txt`, run the remaining gated pipeline:
+
+```bash
+PADDLEOCR_PYTHON=/home/neo/.cache/video-transcription-ocr/venv/bin/python \
+PADDLEOCR_DEVICE=gpu:0 \
+python3 scripts/run_pipeline.py --project projects/youtube-VIDEO_ID --step all
+```
+
+The runner stops at missing inputs and approval gates. It never fabricates visual assets or approval markers. If an agent has no image-generation capability, it must stop at the asset gate and request the approved uploads.
 
 Hook layer: the opening hook is persisted per project; the ending uses one fixed combined action/follow CTA — `一键三连，关注我的账号，持续更新。行动起来，成为更好的自己。` — rendered with the same bilingual subtitle safe area and karaoke rules. The final sequence is opening, intro hook, source, combined ending hook, then the four-second music tail.
 

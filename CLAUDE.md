@@ -1,0 +1,1 @@
+Read `AGENTS.md` and `SKILL.md` for the portable bilingual video workflow. Use `scripts/bootstrap_project.py` and the gated `scripts/run_pipeline.py`; do not bypass approval or subtitle OCR gates.

@@ -124,6 +124,17 @@ Keep these layers separate and auditable:
 
 Never treat a filename or upload order as proof of an asset's semantic role. A cover is not the first inline image, and a text-heavy cover must never become the persistent subtitle background.
 
+### Portable end-to-end entrypoints
+
+This repository is usable by Hermes, Claude Code, pi, or another agent that reads `SKILL.md`. Use `AGENTS.md`/`CLAUDE.md` for agent-specific loading rules; do not assume Hermes slash commands exist.
+
+1. Bootstrap source and project gates: `python3 scripts/bootstrap_project.py URL_OR_LOCAL_VIDEO --slug youtube-<id>`.
+2. Complete `scripts/zh.md`, `work/visual_brief.md`, the explicit image-mode choice, and approved uploaded/generated `assets/background.png` and `assets/opening.png`.
+3. Render the gated sample: `python3 scripts/run_pipeline.py --project projects/<slug> --step prepare`.
+4. After user approval in `work/sample_approval.txt`, run `scripts/run_pipeline.py --project projects/<slug> --step all` with `PADDLEOCR_PYTHON`/`PADDLEOCR_DEVICE` set when using PaddleOCR.
+
+The runner stops on missing inputs and approval gates. It never invents translations, visual assets, or approval markers. Agents without image generation must stop at the asset gate and request approved uploads; this is a valid manual branch, not a silent bypass.
+
 ### Production gates
 
 - Preserve the raw source before editorial cleanup and record actual duration, language, caption source, and uncertainty warnings.
