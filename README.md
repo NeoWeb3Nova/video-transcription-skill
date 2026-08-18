@@ -102,6 +102,8 @@ uv venv .venv && uv pip install --python .venv/bin/python edge-tts
 
 The pipeline mirrors the proven run in `projects/youtube-977PU9FtGA0` (3s opening, 0.35s paragraph gaps, SentenceBoundary events, uniform karaoke `\k`, fontsdir `/mnt/c/Windows/Fonts`). Prerelease gates: cover approval (`work/cover_approval.txt`) and sample approval (`work/sample_approval.txt`) must be `approved`; the sync audit must pass before final preflight.
 
+Hook layer: the opening hook is persisted per project; the ending uses one fixed combined action/follow CTA — `一键三连，关注我的账号，持续更新。行动起来，成为更好的自己。` — rendered with the same bilingual subtitle safe area and karaoke rules. The final sequence is opening, intro hook, source, combined ending hook, then the four-second music tail.
+
 ## License
 
 MIT

@@ -140,6 +140,14 @@ Never treat a filename or upload order as proof of an asset's semantic role. A c
 
 The production workflow is complete only when the source remains auditable, the source/translation paragraph counts and order match, the cover independently passes identity/topic/typography QA and explicit approval, every derivative is synchronized, the final render passes the machine-readable sync audit, and final preflight passes.
 
+### Fixed hook layer
+
+When a project enables the bilingual hook layer, keep the source transcript unchanged and persist the selected opening hook in `work/hooks.json`. Render hooks with the same subtitle styles and right-side safe area as source captions: Chinese wraps at 13 characters, English at 8 words, and real TTS events provide the timing. The ending is one fixed combined hook, not separate action and CTA segments:
+
+`一键三连，关注我的账号，持续更新。行动起来，成为更好的自己。`
+
+The audio order is `3s opening -> intro hook -> 0.35s gap -> source -> 0.35s gap -> combined ending hook -> 4s music tail`. Verify the merged ending appears once in the ASS file, no `hook_cta` event remains, and final duration equals opening plus the rebuilt master audio.
+
 ## Runtime files
 
 The scripts write temporary downloads, extracted audio, subtitles, and frames under a temporary working directory unless `--out-dir` is supplied. Delete the working directory after follow-up questions are finished.

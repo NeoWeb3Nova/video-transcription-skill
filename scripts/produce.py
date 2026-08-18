@@ -170,6 +170,8 @@ def karaoke_line(text: str, dur_s: float, lang: str) -> str:
     total = sum(len(u) for u in units) or 1
     per = max(1, round(dur_s * 100 / total))  # centiseconds per unit, uniform
     k = f"{{\\k{per}}}"
+    if lang == "EN":
+        return "\\N".join(" ".join(k + u for u in seg) for seg in units)
     return "\\N".join("".join(k + u for u in seg) for seg in units)
 
 

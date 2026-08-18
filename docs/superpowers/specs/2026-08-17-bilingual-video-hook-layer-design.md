@@ -9,8 +9,7 @@ Approved design for review before implementation.
 Add a reusable editorial hook layer to the bilingual video-production workflow:
 
 1. an opening hook before the source speech;
-2. an ending reflection/action hook after the source speech;
-3. a light channel CTA after the ending hook.
+2. one fixed ending hook after the source speech, combining action and account-follow CTA.
 
 The opening hook must use one fixed catalog entry, selected at production time by the current clock second. It must create an immediate emotional trigger without pretending to be a source quotation. The catalog is intentionally topic-independent so the channel develops a recognizable recurring ritual.
 
@@ -46,25 +45,17 @@ The selected index, source second, algorithm name, and exact Chinese/English str
 
 The selected opening hook is spoken after the 3-second opening card and before the source speech.
 
-### Ending hook
+### Fixed ending hook
 
-Chinese default pattern:
+The action prompt and account-follow CTA are one fixed ending hook:
 
-> 听完了，然后呢？如果你明天还是照旧，这30分钟就白听了。现在去做一件你一直不敢做的事，证明你说的“我可以”不是一句废话。
+Chinese:
 
-English default pattern:
+> 一键三连，关注我的账号，持续更新。行动起来，成为更好的自己。
 
-> You finished listening. Now what? If you live the same way tomorrow, these 30 minutes were wasted. Go do one thing you have been afraid to do, and prove that “I can” is not just empty words.
+English subtitle:
 
-### CTA
-
-Chinese default pattern:
-
-> 没有人会替你改变。现在订阅，下一次继续用30分钟，把一句话变成一个行动。
-
-English default pattern:
-
-> No one else will change your life for you. Subscribe now, and next time, spend 30 minutes turning another principle into action.
+> Like, share, and follow my account for continuous updates. Take action and become a better version of yourself.
 
 The seven strings are fixed by editorial decision. They are promotional framing, not quotations from Jim Rohn or claims made by the source speech. No additional topic-specific opening rewrite is allowed in the default workflow.
 
@@ -100,9 +91,7 @@ The rendered sequence is:
 → 0.35s gap
 → source narration
 → 0.35s gap
-→ outro hook TTS
-→ 0.35s gap
-→ CTA TTS
+→ ending hook TTS
 → 4s music tail
 ```
 
@@ -110,8 +99,7 @@ The source transcript remains unchanged. The source start offset is computed fro
 
 ```text
 source_start = 3.0 + intro_duration + 0.35
-outro_start = source_start + source_narration_duration + 0.35
-cta_start = outro_start + outro_duration + 0.35
+ending_start = source_start + source_narration_duration + 0.35
 ```
 
 No hook duration is estimated or hard-coded.
@@ -125,16 +113,14 @@ work/tts/zh/hook_intro.mp3
 work/tts/zh/hook_intro.events.json
 work/tts/zh/hook_outro.mp3
 work/tts/zh/hook_outro.events.json
-work/tts/zh/hook_cta.mp3
-work/tts/zh/hook_cta.events.json
 ```
 
 Planned shared-script changes:
 
 - `build_paras.py`: validate `hooks.json` without counting hooks as source paragraphs;
-- `tts_generate.py`: synthesize the three hook segments with bounded retries;
+- `tts_generate.py`: synthesize the two hook segments with bounded retries;
 - `build_timeline.py`: add hook events and apply the dynamic source offset;
-- `assemble_audio.py`: concatenate intro, source, outro, CTA, and music tail in that order;
+- `assemble_audio.py`: concatenate intro, source, ending hook, and music tail in that order;
 - `render_full.py` and `render_sample15.py`: render using the expanded master audio;
 - `spotcheck.py`: audit hook and source segments separately;
 - `preflight_project.py`: fail closed when hook data, audio, events, or timing are missing;
@@ -153,7 +139,6 @@ ASS events carry a semantic role:
 - `HOOK_INTRO`
 - `SOURCE`
 - `HOOK_OUTRO`
-- `CTA`
 
 All use the existing bilingual karaoke visual styles. Roles are used for machine auditing and do not need visible labels in the video.
 
@@ -167,7 +152,7 @@ Fail closed when:
 - hook audio order or timing overlaps the source;
 - source paragraph count/order changes;
 - the first source subtitle does not align to the computed source offset;
-- the last CTA subtitle does not cover CTA audio;
+- the ending-hook subtitle does not cover ending-hook audio;
 - final duration does not equal opening plus master audio;
 - any start/middle/end audio checkpoint is silent;
 - `spotcheck.ok` is not true.
@@ -180,8 +165,8 @@ A new project is complete only when:
 
 1. `work/hooks.json` exists and passes schema/content validation;
 2. source paragraph count and 1:1 bilingual alignment remain unchanged;
-3. all three hook TTS files and event files exist;
-4. the timeline contains intro, source, outro, and CTA roles in that order;
+3. both hook TTS files and event files exist;
+4. the timeline contains intro, source, and ending-hook roles in that order;
 5. the computed source offset matches the first source subtitle;
 6. the 15-second sample includes the opening card and opening hook without clipping;
 7. full render has 1920x1080 video and AAC audio;
