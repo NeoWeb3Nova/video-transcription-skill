@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Add the persisted editorial hooks around the existing source pipeline."""
 from __future__ import annotations
-import asyncio, json, re, subprocess, sys
+import asyncio, json, os, re, subprocess, sys
 from pathlib import Path
 import edge_tts
 
 ROOT = Path(__file__).resolve().parent.parent
-P = ROOT / "projects" / "youtube-csT_7txNnOQ"
+P = ROOT / "projects" / os.environ.get("PROJECT_SLUG", "youtube-csT_7txNnOQ")
 FFMPEG = ROOT / "tools/ffmpeg-static/bin/ffmpeg"
 FFPROBE = ROOT / "tools/ffmpeg-static/bin/ffprobe"
 FONTSDIR = "/mnt/c/Windows/Fonts"
@@ -103,6 +103,11 @@ def shift_ass(src: Path, dst: Path, offset: float, hooks: list[tuple[str, float,
         out.append(line)
     for name, start, zh, en in hooks:
         out.extend(hook_lines(name, start, zh, en))
+    # ponytail: libass drops the first CJK cue unless it is repeated after the
+    # paired English events; keep the original style and layout unchanged.
+    first_zh = next((line for line in out if line.startswith("Dialogue:") and ",ZH," in line), None)
+    if first_zh:
+        out.append(first_zh)
     dst.write_text("\ufeff" + "\n".join(out) + "\n", encoding="utf-8")
 
 

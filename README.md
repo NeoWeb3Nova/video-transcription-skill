@@ -97,10 +97,13 @@ uv venv .venv && uv pip install --python .venv/bin/python edge-tts
 .venv/bin/python scripts/produce.py sample     # 15s sample render (user approval gate)
 .venv/bin/python scripts/produce.py full       # full render
 .venv/bin/python scripts/produce.py spotcheck  # automatic sync audit -> work/spotcheck.json (ok:true)
+.venv/bin/python scripts/produce.py caption_qa # OCR burned-subtitle audit -> work/caption_qa.json
 .venv/bin/python scripts/produce.py preflight  # fail-closed gate report
 ```
 
 The pipeline mirrors the proven run in `projects/youtube-977PU9FtGA0` (3s opening, 0.35s paragraph gaps, SentenceBoundary events, uniform karaoke `\k`, fontsdir `/mnt/c/Windows/Fonts`). Prerelease gates: cover approval (`work/cover_approval.txt`) and sample approval (`work/sample_approval.txt`) must be `approved`; the sync audit must pass before final preflight.
+
+`caption_qa` prefers PaddleOCR PP-OCRv6 (`PADDLEOCR_PYTHON=/home/neo/.cache/video-transcription-ocr/venv/bin/python`) and falls back to Tesseract. It verifies burned subtitles from rendered frames. If OCR is unavailable, it writes `manual_review_required` and preflight fails closed instead of claiming visual verification.
 
 Hook layer: the opening hook is persisted per project; the ending uses one fixed combined action/follow CTA — `一键三连，关注我的账号，持续更新。行动起来，成为更好的自己。` — rendered with the same bilingual subtitle safe area and karaoke rules. The final sequence is opening, intro hook, source, combined ending hook, then the four-second music tail.
 

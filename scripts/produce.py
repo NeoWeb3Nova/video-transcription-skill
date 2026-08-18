@@ -9,6 +9,7 @@ Steps (run in order):
   python3 scripts/produce.py sample     # 15s sample render
   python3 scripts/produce.py full       # full render
   python3 scripts/produce.py spotcheck  # automatic sync audit (manifest ok:true)
+  python3 scripts/produce.py caption_qa # OCR burned-subtitle audit
   python3 scripts/produce.py preflight  # gate report
 
 Derived from the proven pipeline recorded in projects/youtube-977PU9FtGA0 logs
@@ -245,7 +246,7 @@ def sent_times(n: int, paras: list, events: dict, para_start: dict) -> list[tupl
             sn_cb.append(sn_cb[-1] + L)
 
         def ev_for(p: int) -> int:
-            return bisect.bisect_right(ev_cb, p) - 1
+            return min(len(evs) - 1, bisect.bisect_right(ev_cb, p) - 1)
 
         out = []
         for i in range(n_sent):
@@ -454,6 +455,14 @@ def cmd_spotcheck() -> None:
     print(json.dumps(manifest, indent=1))
 
 
+def cmd_caption_qa() -> None:
+    ass = P / "subs/karaoke_hooks.ass" if (P / "subs/karaoke_hooks.ass").exists() else P / "subs/karaoke_follow_gold.ass"
+    video = P / "output/jim_rohn_5_habits_full.mp4" if (P / "output/jim_rohn_5_habits_full.mp4").exists() else P / "output/make_it_full.mp4"
+    ocr_python = os.environ.get("PADDLEOCR_PYTHON", sys.executable)
+    result = subprocess.run([ocr_python, str(ROOT / "scripts/caption_qa.py"), "--video", str(video), "--ass", str(ass), "--out", str(P / "work/caption_qa.json")])
+    sys.exit(result.returncode)
+
+
 # ---------------- preflight ----------------
 
 def cmd_preflight() -> None:
@@ -471,6 +480,10 @@ def cmd_preflight() -> None:
     ck("spotcheck", (P / "work/spotcheck.json").exists())
     if (P / "work/spotcheck.json").exists():
         ck("spotcheck ok", json.loads((P / "work/spotcheck.json").read_text()).get("ok") is True)
+    caption_qa = P / "work/caption_qa.json"
+    ck("caption qa", caption_qa.exists())
+    if caption_qa.exists():
+        ck("caption qa ok", json.loads(caption_qa.read_text()).get("status") == "pass")
     ck("final video", (P / "output/make_it_full.mp4").exists())
     ck("bilibili publish pack", (P / "publish/bilibili_title_recommendations.md").exists())
     sys.exit(0 if all(ok for _, ok, _ in checks) else 1)
@@ -478,7 +491,7 @@ def cmd_preflight() -> None:
 
 CMDS = {"manifest": cmd_manifest, "tts": cmd_tts, "timeline": cmd_timeline,
         "audio": cmd_audio, "sample": cmd_sample, "full": cmd_full,
-        "spotcheck": cmd_spotcheck, "preflight": cmd_preflight}
+        "spotcheck": cmd_spotcheck, "caption_qa": cmd_caption_qa, "preflight": cmd_preflight}
 
 if __name__ == "__main__":
     if len(sys.argv) != 2 or sys.argv[1] not in CMDS:
