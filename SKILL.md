@@ -129,9 +129,11 @@ Never treat a filename or upload order as proof of an asset's semantic role. A c
 This repository is usable by Hermes, Claude Code, pi, or another agent that reads `SKILL.md`. Use `AGENTS.md`/`CLAUDE.md` for agent-specific loading rules; do not assume Hermes slash commands exist.
 
 1. Bootstrap source and project gates: YouTube URLs automatically use `projects/youtube-<id>`; local videos use `--slug <slug>`.
-2. Complete `scripts/zh.md`, `work/visual_brief.md`, the explicit image-mode choice, and approved uploaded/generated `assets/background.png` and `assets/opening.png`.
+2. Complete `scripts/zh.md`, `work/visual_brief.md`, the explicit image-mode choice, and approved uploaded/generated `assets/background.png`, `assets/opening.png`, and the independent `assets/cover.png`.
 3. Render the gated sample: `python3 scripts/run_pipeline.py --project projects/<slug> --step prepare`.
 4. After user approval in `work/sample_approval.txt`, run `scripts/run_pipeline.py --project projects/<slug> --step all` with `PADDLEOCR_PYTHON`/`PADDLEOCR_DEVICE` set when using PaddleOCR.
+
+For direct script execution, run `manifest → tts → hooks-tts → timeline → audio → sample`; only run `full` after `work/sample_approval.txt` is `approved`.
 
 The runner stops on missing inputs and approval gates. It never invents translations, visual assets, or approval markers. Agents without image generation must stop at the asset gate and request approved uploads; this is a valid manual branch, not a silent bypass.
 
@@ -144,6 +146,7 @@ The runner stops on missing inputs and approval gates. It never invents translat
 - The cover must show the source mechanism, not only its mood. For problem-solving content require a visible causal chain such as `problem fragments -> calm analysis -> solution route`.
 - All Chinese covers use model-typeset poster typography. Never use deterministic post-processing text on the cover. Treat the cover as a complete advertising poster: kicker/section marker, dominant headline with intentional line breaks and contrasting emphasis, subordinate support line, visible grid/framing, one subordinate speaker/series attribution layer for identity-bearing works, and at most one mechanism-reinforcing auxiliary sequence. For Jim Rohn covers, verify `JIM ROHN` or `吉姆·罗恩励志演讲` is visible without competing with the title. QA every visible string at full size and 320x180. The project must contain `work/cover_typography_mode.txt` with `model-typeset`; fail the cover gate if it is absent or different.
 - Keep image mode (`auto` or `prompt`) explicit in the project checkpoint. Approval timeouts or interrupted turns are not approval.
+- In `auto` mode, the opening is a title card, not a cover: reuse the approved background unchanged and add only a deterministic exact-text layer in the right safe area. Use a small kicker, dominant Chinese title, English subline, and small byline; do not add the cover's mechanism sequence, random copy, or source-quotation claims. Deterministic text is allowed for opening/title cards but remains prohibited for covers. Verify the actual 1920x1080 raster for clipping, spacing, and face/gesture clearance.
 - For bilingual narration, preserve stable paragraph IDs across translation, TTS, subtitle timing, concatenation, and rendering. Validate numeric ordering naturally (`para11` after `para10`, never lexical misordering).
 - After full render, audit every TTS event against subtitle coverage, check audio energy at start/middle/end checkpoints, validate final duration, and write a machine-readable manifest with `ok: true`. Final preflight fails closed if the manifest is missing, invalid, or false.
 
@@ -151,13 +154,13 @@ The runner stops on missing inputs and approval gates. It never invents translat
 
 The production workflow is complete only when the source remains auditable, the source/translation paragraph counts and order match, the cover independently passes identity/topic/typography QA and explicit approval, every derivative is synchronized, the final render passes the machine-readable sync audit, and final preflight passes.
 
-### Fixed hook layer
+### Default hook layer
 
-When a project enables the bilingual hook layer, keep the source transcript unchanged and persist the selected opening hook in `work/hooks.json`. Render hooks with the same subtitle styles and right-side safe area as source captions: Chinese wraps at 13 characters, English at 8 words, and real TTS events provide the timing. The ending is one fixed combined hook, not separate action and CTA segments:
+New projects use the bilingual hook layer by default. Keep the source transcript unchanged and persist the selected opening hook in `work/hooks.json`. Render hooks with the same subtitle styles and right-side safe area as source captions: Chinese wraps at 13 characters, English at 8 words, and real TTS events provide the timing. The ending is one fixed combined hook, not separate action and CTA segments:
 
 `一键三连，关注我的账号，持续更新。行动起来，成为更好的自己。`
 
-The audio order is `3s opening -> intro hook -> 0.35s gap -> source -> 0.35s gap -> combined ending hook -> 4s music tail`. Verify the merged ending appears once in the ASS file, no `hook_cta` event remains, and final duration equals opening plus the rebuilt master audio.
+The portable runner executes `manifest -> tts -> hooks-tts -> timeline -> audio -> sample/full`. The audio order is `3s opening -> intro hook -> 0.35s gap -> source -> 0.35s gap -> combined ending hook -> 4s music tail`. Verify the merged ending appears once in the ASS file, no `hook_cta` event remains, and final duration equals opening plus the rebuilt master audio.
 
 ## Runtime files
 

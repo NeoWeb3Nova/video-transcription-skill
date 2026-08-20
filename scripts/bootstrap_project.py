@@ -75,9 +75,9 @@ def main() -> int:
         "- Visual metaphors: [complete before assets]\n"
         "- Forbidden interpretations: [complete before assets]\n"
     )
-    for name, value in (("image_mode.txt", "pending\n"), ("visual_brief_approval.txt", "pending\n"), ("cover_approval.txt", "pending\n"), ("sample_approval.txt", "pending\n")):
+    for name, value in (("image_mode.txt", "pending\n"), ("cover_typography_mode.txt", "model-typeset\n"), ("visual_brief_approval.txt", "pending\n"), ("cover_approval.txt", "pending\n"), ("sample_approval.txt", "pending\n")):
         (project / "work" / name).write_text(value)
-    print(json.dumps({"project": str(project), "title": metadata.get("title"), "english_cues": len(cues), "next": ["complete scripts/zh.md", "complete and approve work/visual_brief.md", "choose image_mode", "provide assets/background.png and assets/opening.png"]}, ensure_ascii=False, indent=2))
+    print(json.dumps({"project": str(project), "title": metadata.get("title"), "english_cues": len(cues), "next": ["complete scripts/zh.md", "complete and approve work/visual_brief.md", "choose image_mode", "provide and approve assets/cover.png, assets/background.png, and assets/opening.png"]}, ensure_ascii=False, indent=2))
     return 0
 
 

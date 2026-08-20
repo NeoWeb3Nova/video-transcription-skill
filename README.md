@@ -95,6 +95,7 @@ See `SKILL.md` for the complete workflow and quality rules.
 uv venv .venv && uv pip install --python .venv/bin/python edge-tts
 .venv/bin/python scripts/produce.py manifest   # paragraph+sentence alignment check -> work/paras.json
 .venv/bin/python scripts/produce.py tts        # edge-tts narration + sentence events (71 paragraphs, resumable)
+.venv/bin/python scripts/produce.py hooks-tts  # default opening/ending hook narration + events
 .venv/bin/python scripts/produce.py timeline   # bilingual ASS + karaoke ASS
 .venv/bin/python scripts/produce.py audio      # concat narration -> audio/master.wav
 .venv/bin/python scripts/produce.py sample     # 15s sample render (user approval gate)
@@ -116,7 +117,7 @@ Bootstrap a project from a URL or local video:
 python3 scripts/bootstrap_project.py https://www.youtube.com/watch?v=VIDEO_ID
 ```
 
-Complete `scripts/zh.md`, complete and approve `work/visual_brief.md`, choose `work/image_mode.txt`, and provide approved `assets/background.png` and `assets/opening.png`. Then render the gated 15-second sample:
+Complete `scripts/zh.md`, complete and approve `work/visual_brief.md`, choose `work/image_mode.txt`, and provide approved `assets/background.png`, `assets/opening.png`, and independent `assets/cover.png`. New projects use the fixed bilingual hook layer by default (`manifest → tts → hooks-tts → timeline → audio`). Then render the gated 15-second sample:
 
 ```bash
 python3 scripts/run_pipeline.py --project projects/youtube-VIDEO_ID --step prepare
@@ -132,7 +133,9 @@ python3 scripts/run_pipeline.py --project projects/youtube-VIDEO_ID --step all
 
 The runner stops at missing inputs and approval gates. It never fabricates visual assets or approval markers. If an agent has no image-generation capability, it must stop at the asset gate and request the approved uploads.
 
-Hook layer: the opening hook is persisted per project; the ending uses one fixed combined action/follow CTA — `一键三连，关注我的账号，持续更新。行动起来，成为更好的自己。` — rendered with the same bilingual subtitle safe area and karaoke rules. The final sequence is opening, intro hook, source, combined ending hook, then the four-second music tail.
+Hook layer: the opening hook is persisted per project in `work/hooks.json`; the ending uses one fixed combined action/follow CTA — `一键三连，关注我的账号，持续更新。行动起来，成为更好的自己。` — rendered with the same bilingual subtitle safe area and karaoke rules. The final sequence is opening, intro hook, source, combined ending hook, then the four-second music tail.
+
+Auto image mode has separate rules for the two text-bearing assets: covers are complete model-typeset posters with no deterministic text overlay; openings reuse the approved background and use only a deterministic exact-text title layer (kicker, dominant Chinese title, English subline, byline) in the right safe area. An opening is not a second cover and must not contain the cover mechanism sequence.
 
 ## License
 

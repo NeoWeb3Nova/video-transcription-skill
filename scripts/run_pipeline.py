@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-STEPS = ("manifest", "tts", "timeline", "audio", "sample", "full", "spotcheck", "caption_qa", "preflight")
+STEPS = ("manifest", "tts", "hooks-tts", "timeline", "audio", "sample", "full", "spotcheck", "caption_qa", "preflight")
 
 
 def require(project: Path, *paths: str) -> None:
@@ -25,13 +25,18 @@ def run(project: Path, step: str) -> None:
 
 
 def gate(project: Path, step: str) -> None:
-    if step in {"manifest", "tts", "timeline", "audio"}:
+    if step in {"manifest", "tts", "hooks-tts", "timeline", "audio"}:
         require(project, "scripts/en.md", "scripts/zh.md")
+    if step in {"hooks-tts", "timeline", "audio", "sample", "full"}:
+        require(project, "work/hooks.json")
     if step in {"sample", "full"}:
-        require(project, "assets/background.png", "assets/opening.png", "scripts/en.md", "scripts/zh.md", "work/paras.json", "audio/master.wav")
+        require(project, "assets/background.png", "assets/opening.png", "assets/cover.png", "scripts/en.md", "scripts/zh.md", "work/paras.json", "audio/master.wav", "work/cover_approval.txt", "work/cover_typography_mode.txt")
+        if (project / "work/cover_approval.txt").read_text().strip() != "approved":
+            raise SystemExit("blocked; user must approve work/cover_approval.txt before rendering")
+        if (project / "work/cover_typography_mode.txt").read_text().strip() != "model-typeset":
+            raise SystemExit("blocked; work/cover_typography_mode.txt must be model-typeset")
     if step == "sample":
-        require(project, "work/sample_approval.txt")
-        if (project / "work/sample_approval.txt").read_text().strip() == "approved":
+        if (project / "work/sample_approval.txt").exists() and (project / "work/sample_approval.txt").read_text().strip() == "approved":
             raise SystemExit("sample already approved; run full when ready")
     if step == "full":
         require(project, "work/sample_approval.txt")
@@ -48,14 +53,14 @@ def main() -> int:
     args = parser.parse_args()
     project = args.project.resolve()
     if args.step == "prepare":
-        for step in ("manifest", "tts", "timeline", "audio", "sample"):
+        for step in ("manifest", "tts", "hooks-tts", "timeline", "audio", "sample"):
             gate(project, step)
             run(project, step)
         print("sample rendered; stop for user approval in work/sample_approval.txt")
         return 0
     if args.step == "all":
         approved = (project / "work/sample_approval.txt").exists() and (project / "work/sample_approval.txt").read_text().strip() == "approved"
-        steps = ["full", "spotcheck", "caption_qa", "preflight"] if approved else ["manifest", "tts", "timeline", "audio", "sample"]
+        steps = ["full", "spotcheck", "caption_qa", "preflight"] if approved else ["manifest", "tts", "hooks-tts", "timeline", "audio", "sample"]
     else:
         steps = [args.step]
     for step in steps:

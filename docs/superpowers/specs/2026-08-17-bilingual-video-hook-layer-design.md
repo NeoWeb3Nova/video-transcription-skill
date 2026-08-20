@@ -2,7 +2,7 @@
 
 ## Status
 
-Approved design for review before implementation.
+Implemented in the canonical `scripts/produce.py` pipeline and enabled by default for new projects.
 
 ## Goal
 
@@ -61,7 +61,7 @@ The seven strings are fixed by editorial decision. They are promotional framing,
 
 ## Project data contract
 
-Each new project contains `work/hooks.json`:
+The first hook-aware `manifest` step creates and persists `work/hooks.json` for the project:
 
 ```json
 {
@@ -74,8 +74,7 @@ Each new project contains `work/hooks.json`:
   "catalog_zh": "睡前30分钟，听进去，人生就会开始转向。",
   "catalog_en": "Spend 30 minutes before bed listening closely, and your life will begin to turn.",
   "intro": {"zh": "...", "en": "..."},
-  "outro": {"zh": "...", "en": "..."},
-  "cta": {"zh": "...", "en": "..."}
+  "ending": {"zh": "...", "en": "..."}
 }
 ```
 
@@ -109,28 +108,23 @@ No hook duration is estimated or hard-coded.
 Hook TTS is kept separate from source paragraph TTS:
 
 ```text
-work/tts/zh/hook_intro.mp3
-work/tts/zh/hook_intro.events.json
-work/tts/zh/hook_outro.mp3
-work/tts/zh/hook_outro.events.json
+work/tts/hooks/intro.mp3
+work/tts/hooks/intro.events.json
+work/tts/hooks/ending.mp3
+work/tts/hooks/ending.events.json
 ```
 
-Planned shared-script changes:
+Implemented components:
 
-- `build_paras.py`: validate `hooks.json` without counting hooks as source paragraphs;
-- `tts_generate.py`: synthesize the two hook segments with bounded retries;
-- `build_timeline.py`: add hook events and apply the dynamic source offset;
-- `assemble_audio.py`: concatenate intro, source, ending hook, and music tail in that order;
-- `render_full.py` and `render_sample15.py`: render using the expanded master audio;
-- `spotcheck.py`: audit hook and source segments separately;
-- `preflight_project.py`: fail closed when hook data, audio, events, or timing are missing;
-- project initialization: create a `hooks.json` template and checkpoint.
+- `scripts/produce.py`: render using the expanded master audio, audit hook/source timing, and fail closed on missing event data;
+- `scripts/run_pipeline.py`: run hooks by default and enforce the approval gates;
+- first hook-aware `manifest`: create and persist the project `hooks.json` checkpoint.
 
-The existing 3-second opening card, background, cover, subtitle styles, and source script files remain unchanged.
+The existing 3-second opening card, background, subtitle styles, and source script files remain unchanged; the independent cover remains a required approved asset.
 
 ## Compatibility
 
-Completed legacy projects remain valid and are not rewritten. New initialized projects require hooks by default. An explicit `--no-hooks` escape hatch may preserve the old flow for legacy maintenance, but it cannot be the default for new projects.
+Completed legacy projects remain valid and are not rewritten. New initialized projects require hooks by default. The portable runner does not expose a hook-free compatibility path; legacy completed artifacts remain readable but new runs are hook-aware by default.
 
 ## Subtitle roles
 
@@ -138,7 +132,7 @@ ASS events carry a semantic role:
 
 - `HOOK_INTRO`
 - `SOURCE`
-- `HOOK_OUTRO`
+- `HOOK_ENDING`
 
 All use the existing bilingual karaoke visual styles. Roles are used for machine auditing and do not need visible labels in the video.
 
@@ -176,4 +170,4 @@ A new project is complete only when:
 
 ## Scope exclusions
 
-This change does not add dynamic hook visuals, a new TTS engine, automatic hype generation, new cover assets, or retroactive rebuilds of completed projects. It also does not force every topic into identical wording: the emotional trigger is selected per topic within the short/direct/agitating style.
+This change does not add dynamic hook visuals, a new TTS engine, automatic hype generation, or retroactive rebuilds of completed projects. It also does not force every topic into identical wording: the emotional trigger is selected per topic within the short/direct/agitating style.
