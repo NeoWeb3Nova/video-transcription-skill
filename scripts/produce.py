@@ -434,7 +434,7 @@ def sent_times(n: int, paras: list, events: dict, para_start: dict) -> list[tupl
         return list(zip(starts, ends))
 
     ev_text = "".join(norm_zh(e["text"]) for e in evs)
-    if False:  # ponytail: proportional fallback avoids zero-width merged-event spans
+    if ev_text == zh_all and len(evs) < n_sent:
         # split merged events proportionally by char span (real event edges kept)
         ev_lens = [len(norm_zh(e["text"])) for e in evs]
         sn_lens = [len(norm_zh(s)) for s in paras[n - 1]["zh"]]

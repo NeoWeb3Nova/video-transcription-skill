@@ -119,19 +119,13 @@ def main() -> int:
             with tempfile.TemporaryDirectory(prefix="caption-qa-") as tmp:
                 for i, event in enumerate(evs):
                     frame = Path(tmp) / f"{i:05d}.png"
-                    # Restrict OCR to the known subtitle-safe band; the speaker
-                    # portrait and background texture otherwise dominate Tesseract.
-                    subprocess.run([ffmpeg, "-y", "-loglevel", "error", "-ss", str((event["start"] + event["end"]) / 2), "-i", str(args.video), "-vf", "crop=1150:360:760:400", "-frames:v", "1", str(frame)], check=True)
+                    # OCR only the active language row; background texture and
+                    # the paired language must not substitute for this event.
+                    crop = "crop=1150:220:760:400" if event["style"] == "ZH" else "crop=1150:150:760:600"
+                    subprocess.run([ffmpeg, "-y", "-loglevel", "error", "-ss", str((event["start"] + event["end"]) / 2), "-i", str(args.video), "-vf", crop, "-frames:v", "1", str(frame)], check=True)
                     text = reader(frame)
                     score = match_score(event["style"], event["text"], text)
-                    other_language_seen = (
-                        bool(re.search(r"[\u4e00-\u9fff]", text)) if event["style"] == "EN"
-                        else bool(re.search(r"[a-z]{2}", text.lower()))
-                    )
-                    # Karaoke highlighting can make one row intermittently
-                    # unreadable to Tesseract; the paired bilingual row in the
-                    # same cropped frame still proves the event is present.
-                    if norm(event["text"]) not in norm(text) and score < 0.15 and not other_language_seen:
+                    if norm(event["text"]) not in norm(text) and score < 0.70:
                         failures.append({"style": event["style"], "start": event["start"], "score": round(score, 3), "expected": event["text"], "ocr": text.strip()})
                     result["checked"] += 1
             result["errors"] = failures
