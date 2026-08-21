@@ -133,7 +133,24 @@ This repository is usable by Hermes, Claude Code, pi, or another agent that read
 3. Render the gated sample: `python3 scripts/run_pipeline.py --project projects/<slug> --step prepare`.
 4. After user approval in `work/sample_approval.txt`, run `scripts/run_pipeline.py --project projects/<slug> --step all` with `PADDLEOCR_PYTHON`/`PADDLEOCR_DEVICE` set when using PaddleOCR.
 
-For direct script execution, run `manifest → tts → hooks-tts → timeline → audio → sample`; only run `full` after `work/sample_approval.txt` is `approved`.
+#### Unattended auto mode
+
+When the user provides only a YouTube URL and an overview, use the unattended
+branch: save the overview, reconcile metadata/captions, choose `auto` image
+mode, complete the visual brief and translation, generate the three assets,
+and inspect each derivative before continuing. Record `auto-approved` only
+after that machine/agent review, then run:
+
+```bash
+python3 scripts/run_pipeline.py --project projects/<slug> --step all --auto
+```
+
+Auto mode removes the user interaction pause, not the quality gates. It still
+requires model-typeset cover typography, independent cover/background/opening
+assets, hook-aware timing, OCR subtitle QA, spotcheck, and passing preflight.
+Manual mode continues to require the literal `approved` marker.
+
+For direct script execution, run `manifest → tts → hooks-tts → timeline → audio → sample`; only run `full` after `work/sample_approval.txt` is `approved` (manual) or `auto-approved` with `--auto`.
 
 The runner stops on missing inputs and approval gates. It never invents translations, visual assets, or approval markers. Agents without image generation must stop at the asset gate and request approved uploads; this is a valid manual branch, not a silent bypass.
 

@@ -117,6 +117,20 @@ Bootstrap a project from a URL or local video:
 python3 scripts/bootstrap_project.py https://www.youtube.com/watch?v=VIDEO_ID
 ```
 
+For unattended production, pass the overview file during bootstrap and use the
+auto runner after the agent has generated and machine-checked the assets and
+translation:
+
+```bash
+python3 scripts/bootstrap_project.py https://www.youtube.com/watch?v=VIDEO_ID \
+  --overview /path/to/overview.md
+python3 scripts/run_pipeline.py --project projects/youtube-VIDEO_ID --step all --auto
+```
+
+`--auto` accepts only the explicit `auto-approved` marker produced by the
+machine-review branch; normal runs still require the literal `approved` marker.
+It does not bypass missing assets, translation, OCR, timing, or preflight.
+
 Complete `scripts/zh.md`, complete and approve `work/visual_brief.md`, choose `work/image_mode.txt`, and provide approved `assets/background.png`, `assets/opening.png`, and independent `assets/cover.png`. New projects use the fixed bilingual hook layer by default (`manifest → tts → hooks-tts → timeline → audio`). Then render the gated 15-second sample:
 
 ```bash

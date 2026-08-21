@@ -87,6 +87,13 @@ def fetch_captions(url: str, out_dir: Path) -> dict:
     subprocess.run(cmd, stdout=sys.stderr, stderr=sys.stderr)
     subtitle = _pick_subtitle(out_dir)
     info = _read_info(out_dir / "video.info.json", url)
+    if subtitle is None or not info.get("title"):
+        # ponytail: one targeted retry for YouTube's current client challenge;
+        # add more clients only when a real failure needs broader coverage.
+        fallback = cmd[:1] + ["--extractor-args", "youtube:player_client=android"] + cmd[1:]
+        subprocess.run(fallback, stdout=sys.stderr, stderr=sys.stderr)
+        subtitle = _pick_subtitle(out_dir)
+        info = _read_info(out_dir / "video.info.json", url)
     return {
         "video_path": None,
         "subtitle_path": str(subtitle) if subtitle else None,

@@ -27,6 +27,7 @@ def main() -> int:
     parser.add_argument("source", help="YouTube URL or local video path")
     parser.add_argument("--slug", help="Custom slug for local input only")
     parser.add_argument("--workspace", type=Path, default=ROOT / "projects")
+    parser.add_argument("--overview", type=Path, help="User overview markdown file")
     args = parser.parse_args()
     canonical = canonical_youtube_slug(args.source) if is_url(args.source) else None
     if canonical and args.slug and args.slug != canonical:
@@ -58,6 +59,11 @@ def main() -> int:
         shutil.copy2(subtitle, project / "source/raw/source.en.vtt")
     else:
         (project / "scripts/en.md").write_text("")
+    if args.overview:
+        overview = args.overview.expanduser().resolve()
+        if not overview.exists():
+            raise SystemExit(f"overview file not found: {overview}")
+        (project / "source/user_overview.md").write_text(overview.read_text(encoding="utf-8"))
     (project / "scripts/zh.md").write_text("")
     (project / "work/translation_checkpoint.md").write_text(
         "# Translation checkpoint\n\n"

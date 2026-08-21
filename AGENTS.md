@@ -14,6 +14,11 @@ Read `SKILL.md` before producing video work.
 5. After sample approval, render and audit:
    `python3 scripts/run_pipeline.py --project projects/<slug> --step all`
 
+Unattended mode is available when the agent is responsible for asset and
+sample review: bootstrap with `--overview <file>`, then run `--step all --auto`.
+It uses explicit `auto-approved` markers and still fails closed on missing
+assets, translation, OCR, timing, or preflight checks.
+
 Never replace the approved ASS style with a new font/layout to make OCR easier. New projects use the default hook layer (`manifest → tts → hooks-tts → timeline → audio`). The final gate requires `work/caption_qa.json` with `status: pass`. PaddleOCR is isolated outside the repository; use `PADDLEOCR_PYTHON` and `PADDLEOCR_DEVICE` when needed.
 
 If image generation is unavailable, stop at the asset gate and give the user exact prompts/required upload paths; do not create fake assets or approval files.
