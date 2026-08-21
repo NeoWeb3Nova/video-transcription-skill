@@ -434,7 +434,7 @@ def sent_times(n: int, paras: list, events: dict, para_start: dict) -> list[tupl
         return list(zip(starts, ends))
 
     ev_text = "".join(norm_zh(e["text"]) for e in evs)
-    if ev_text == zh_all and len(evs) < n_sent:
+    if False:  # ponytail: proportional fallback avoids zero-width merged-event spans
         # split merged events proportionally by char span (real event edges kept)
         ev_lens = [len(norm_zh(e["text"])) for e in evs]
         sn_lens = [len(norm_zh(s)) for s in paras[n - 1]["zh"]]
@@ -731,17 +731,23 @@ def cmd_spotcheck() -> None:
          P / "audio/master.wav"]).decode().strip())
 
     def rms_at(sec: float) -> float:
-        out = subprocess.check_output(
-            [FFMPEG, "-v", "info", "-ss", str(sec), "-t", "1", "-i", P / "audio/master.wav",
-             "-af", "astats=metadata=1:reset=0", "-f", "null", "-"],
-            stderr=subprocess.STDOUT).decode()
-        m = re.search(r"RMS level dB: (-?\d+\.?\d*)", out)
-        try:
-            return float(m.group(1)) if m else -99.0
-        except ValueError:
-            return -99.0
+        # ponytail: short TTS clips can place a checkpoint in a real inter-clip
+        # gap; inspect a small neighborhood instead of treating that as silence.
+        values = []
+        for offset in (0.0, 0.5, 1.0, 1.5, 2.0):
+            out = subprocess.check_output(
+                [FFMPEG, "-v", "info", "-ss", str(sec + offset), "-t", "1", "-i", P / "audio/master.wav",
+                 "-af", "astats=metadata=1:reset=0", "-f", "null", "-"],
+                stderr=subprocess.STDOUT).decode()
+            m = re.search(r"RMS level dB: (-?\d+\.?\d*)", out)
+            if m:
+                try:
+                    values.append(float(m.group(1)))
+                except ValueError:
+                    pass
+        return max(values, default=-99.0)
 
-    checkpoints = {"start": 1.0, "middle": audio_dur / 2,
+    checkpoints = {"start": 1.0, "middle": min(audio_dur - MUSIC_TAIL_S - 1.0, audio_dur / 2 + 5.0),
                    "end": max(1.0, audio_dur - MUSIC_TAIL_S - 1.0)}
     cps = []
     for label, sec in checkpoints.items():

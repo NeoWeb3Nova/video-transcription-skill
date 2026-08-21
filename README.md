@@ -140,6 +140,7 @@ python3 scripts/run_pipeline.py --project projects/youtube-VIDEO_ID --step prepa
 After the user writes `approved` to `work/sample_approval.txt`, run the remaining gated pipeline:
 
 ```bash
+LD_LIBRARY_PATH=/usr/lib/wsl/lib:$LD_LIBRARY_PATH \
 PADDLEOCR_PYTHON=/home/neo/.cache/video-transcription-ocr/venv/bin/python \
 PADDLEOCR_DEVICE=gpu:0 \
 python3 scripts/run_pipeline.py --project projects/youtube-VIDEO_ID --step all
