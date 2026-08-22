@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
+import signal
 import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 STEPS = ("manifest", "tts", "hooks-tts", "timeline", "audio", "sample", "full", "spotcheck", "caption_qa", "preflight")
+STEP_TIMEOUT_SECONDS = 15 * 60
 
 
 def require(project: Path, *paths: str) -> None:
@@ -18,12 +21,42 @@ def require(project: Path, *paths: str) -> None:
         raise SystemExit("blocked; missing: " + ", ".join(missing))
 
 
+def require_identity_gate(project: Path, auto: bool) -> None:
+    require(project, "work/identity_gate.json", "source/identity_reference.jpg")
+    try:
+        data = json.loads((project / "work/identity_gate.json").read_text())
+    except (OSError, json.JSONDecodeError) as exc:
+        raise SystemExit(f"blocked; invalid work/identity_gate.json: {exc}")
+    allowed = {"approved", "auto-approved"} if auto else {"approved"}
+    if data.get("status") not in allowed:
+        raise SystemExit("blocked; identity gate must be approved after comparing assets to source/identity_reference.jpg")
+    if data.get("assets") != ["assets/background.png", "assets/opening.png", "assets/cover.png"]:
+        raise SystemExit("blocked; identity gate must cover background, opening, and cover assets")
+
+
 def run(project: Path, step: str) -> None:
     env = os.environ.copy()
     env["PROJECT_SLUG"] = project.name
     if os.environ.get("AUTO_MODE") == "1":
         env["AUTO_MODE"] = "1"
-    subprocess.run([sys.executable, str(ROOT / "scripts/produce.py"), step], cwd=ROOT, env=env, check=True)
+    command = [sys.executable, str(ROOT / "scripts/produce.py"), step]
+    process = subprocess.Popen(command, cwd=ROOT, env=env, start_new_session=True)
+    try:
+        returncode = process.wait(timeout=STEP_TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired:
+        # Kill the whole step session so ffmpeg/tesseract descendants do not linger.
+        os.killpg(process.pid, signal.SIGTERM)
+        try:
+            process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            os.killpg(process.pid, signal.SIGKILL)
+            process.wait()
+        raise SystemExit(
+            f"step {step!r} exceeded {STEP_TIMEOUT_SECONDS // 60} minutes; "
+            "process considered stuck and terminated"
+        ) from None
+    if returncode:
+        raise subprocess.CalledProcessError(returncode, command)
 
 
 def gate(project: Path, step: str, auto: bool = False) -> None:
@@ -32,6 +65,7 @@ def gate(project: Path, step: str, auto: bool = False) -> None:
     if step in {"hooks-tts", "timeline", "audio", "sample", "full"}:
         require(project, "work/hooks.json")
     if step in {"sample", "full"}:
+        require_identity_gate(project, auto)
         require(project, "assets/background.png", "assets/opening.png", "assets/cover.png", "scripts/en.md", "scripts/zh.md", "work/paras.json", "audio/master.wav", "work/cover_approval.txt", "work/cover_typography_mode.txt")
         allowed = {"approved", "auto-approved"} if auto else {"approved"}
         if (project / "work/cover_approval.txt").read_text().strip() not in allowed:

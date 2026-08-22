@@ -43,7 +43,7 @@ Use `--detail transcript` for transcript-only work, `--detail balanced` for norm
 
 5. Reconcile the overview with the YouTube title, metadata, transcript, and relevant frames. Save `work/content_reconciliation.md` with `confirmed`, `overview_only`, `source_only`, and `conflict` sections. Resolve all conflicts before production; do not treat overview-only claims as source quotations.
 
-6. If the workflow includes generated visual assets, create `work/visual_brief.md` before any image call. The brief must state the source mechanism, approved title, identity references, supported visual metaphors, and forbidden interpretations. For an identity-bearing subject, pass the source portrait/thumbnail and the strongest approved project asset as `reference_image_urls`; never substitute soft wording such as `Jim Rohn-like` or `mature motivational speaker` for identity control.
+6. If the workflow includes generated visual assets, create `work/visual_brief.md` before any image call. The brief must state the source mechanism, approved title, identity references, supported visual metaphors, and forbidden interpretations. For an identity-bearing subject, persist `source/identity_reference.jpg`, pass it through `reference_image_urls`, and never substitute soft wording such as `Jim Rohn-like` or `mature motivational speaker` for identity control. Create `work/identity_gate.json` as `pending` before generation; only set it to `auto-approved` after side-by-side inspection of background, opening, and cover against the reference.
 
 7. Apply two visual hard gates before audio or rendering:
 
@@ -154,12 +154,16 @@ For direct script execution, run `manifest → tts → hooks-tts → timeline �
 
 The runner stops on missing inputs and approval gates. It never invents translations, visual assets, or approval markers. Agents without image generation must stop at the asset gate and request approved uploads; this is a valid manual branch, not a silent bypass.
 
+### Step timeout guard
+
+`scripts/run_pipeline.py` gives every pipeline step a hard 15-minute timeout. A step that exceeds this limit is treated as stuck, terminated together with its child process group, and exits with a clear error. Do not wait indefinitely or mark a timed-out QA step as passed; investigate the step separately before retrying.
+
 ### Production gates
 
 - Preserve the raw source before editorial cleanup and record actual duration, language, caption source, and uncertainty warnings.
 - Reconcile the user's overview with source metadata, captions, and inspected visual evidence before translation, image generation, TTS, or rendering.
 - Create `work/visual_brief.md` before any image call. It must contain the source thesis/mechanism, exact approved title, identity references, supported metaphors, and forbidden interpretations.
-- For identity-bearing subjects, pass the source portrait/thumbnail and the strongest approved project asset as `reference_image_urls`. Identity is a hard gate; a generic substitute fails even if composition and dimensions pass.
+- For identity-bearing subjects, persist `source/identity_reference.jpg` and pass it through `reference_image_urls`. Identity is a hard gate; a generic substitute fails even if composition and dimensions pass. `work/identity_gate.json` must list the exact reference and all three assets and be `approved`/`auto-approved` before sample/full rendering; missing reference or gate fails closed.
 - The cover must show the source mechanism, not only its mood. For problem-solving content require a visible causal chain such as `problem fragments -> calm analysis -> solution route`.
 - All Chinese covers use model-typeset poster typography. Never use deterministic post-processing text on the cover. Treat the cover as a complete advertising poster: kicker/section marker, dominant headline with intentional line breaks and contrasting emphasis, subordinate support line, visible grid/framing, one subordinate speaker/series attribution layer for identity-bearing works, and at most one mechanism-reinforcing auxiliary sequence. For Jim Rohn covers, verify `JIM ROHN` or `吉姆·罗恩励志演讲` is visible without competing with the title. QA every visible string at full size and 320x180. The project must contain `work/cover_typography_mode.txt` with `model-typeset`; fail the cover gate if it is absent or different.
 - Keep image mode (`auto` or `prompt`) explicit in the project checkpoint. Approval timeouts or interrupted turns are not approval.

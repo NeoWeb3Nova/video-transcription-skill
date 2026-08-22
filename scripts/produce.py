@@ -794,6 +794,16 @@ def cmd_preflight() -> None:
         path = P / "work" / name
         allowed = {"approved", "auto-approved"} if os.environ.get("AUTO_MODE") == "1" else {"approved"}
         return path.exists() and path.read_text().strip() in allowed
+    identity_ok = False
+    try:
+        gate = json.loads((P / "work/identity_gate.json").read_text())
+        identity_ok = (gate.get("status") in {"approved", "auto-approved"}
+                       and gate.get("reference") == "source/identity_reference.jpg"
+                       and gate.get("assets") == ["assets/background.png", "assets/opening.png", "assets/cover.png"]
+                       and (P / "source/identity_reference.jpg").exists())
+    except (OSError, ValueError, json.JSONDecodeError):
+        identity_ok = False
+    ck("identity gate", identity_ok)
     ck("cover approved", approved("cover_approval.txt"))
     mode = P / "work/cover_typography_mode.txt"
     ck("typography mode", mode.exists() and mode.read_text().strip() == "model-typeset")

@@ -51,6 +51,8 @@ def main() -> int:
     if fetched.get("video_path"):
         video = Path(fetched["video_path"])
         shutil.copy2(video, project / f"source/video{video.suffix}")
+    if fetched.get("thumbnail_path"):
+        shutil.copy2(fetched["thumbnail_path"], project / "source/identity_reference.jpg")
     subtitle = fetched.get("subtitle_path")
     cues = parse_vtt(subtitle) if subtitle else []
     if subtitle:
@@ -83,6 +85,12 @@ def main() -> int:
     )
     for name, value in (("image_mode.txt", "pending\n"), ("cover_typography_mode.txt", "model-typeset\n"), ("visual_brief_approval.txt", "pending\n"), ("cover_approval.txt", "pending\n"), ("sample_approval.txt", "pending\n")):
         (project / "work" / name).write_text(value)
+    (project / "work/identity_gate.json").write_text(json.dumps({
+        "status": "pending",
+        "reference": "source/identity_reference.jpg" if fetched.get("thumbnail_path") else None,
+        "assets": ["assets/background.png", "assets/opening.png", "assets/cover.png"],
+        "review": "Compare every generated person against source/identity_reference.jpg before auto-approval.",
+    }, ensure_ascii=False, indent=2) + "\n")
     print(json.dumps({"project": str(project), "title": metadata.get("title"), "english_cues": len(cues), "next": ["complete scripts/zh.md", "complete and approve work/visual_brief.md", "choose image_mode", "provide and approve assets/cover.png, assets/background.png, and assets/opening.png"]}, ensure_ascii=False, indent=2))
     return 0
 

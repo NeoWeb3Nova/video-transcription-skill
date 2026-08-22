@@ -62,6 +62,14 @@ def _pick_video(out_dir: Path) -> Path | None:
     return None
 
 
+def _pick_thumbnail(out_dir: Path) -> Path | None:
+    for ext in (".jpg", ".jpeg", ".png", ".webp"):
+        candidates = sorted(out_dir.glob(f"video*{ext}"))
+        if candidates:
+            return candidates[0]
+    return None
+
+
 def fetch_captions(url: str, out_dir: Path) -> dict:
     """Fetch metadata and best available VTT captions without downloading video."""
     if shutil.which("yt-dlp") is None:
@@ -73,6 +81,8 @@ def fetch_captions(url: str, out_dir: Path) -> dict:
         "yt-dlp",
         "--skip-download",
         "--write-info-json",
+        "--write-thumbnail",
+        "--convert-thumbnails", "jpg",
         "--write-subs",
         "--write-auto-subs",
         "--sub-langs", "en.*",
@@ -86,6 +96,7 @@ def fetch_captions(url: str, out_dir: Path) -> dict:
     ]
     subprocess.run(cmd, stdout=sys.stderr, stderr=sys.stderr)
     subtitle = _pick_subtitle(out_dir)
+    thumbnail = _pick_thumbnail(out_dir)
     info = _read_info(out_dir / "video.info.json", url)
     if subtitle is None or not info.get("title"):
         # ponytail: one targeted retry for YouTube's current client challenge;
@@ -93,10 +104,12 @@ def fetch_captions(url: str, out_dir: Path) -> dict:
         fallback = cmd[:1] + ["--extractor-args", "youtube:player_client=android"] + cmd[1:]
         subprocess.run(fallback, stdout=sys.stderr, stderr=sys.stderr)
         subtitle = _pick_subtitle(out_dir)
+        thumbnail = _pick_thumbnail(out_dir)
         info = _read_info(out_dir / "video.info.json", url)
     return {
         "video_path": None,
         "subtitle_path": str(subtitle) if subtitle else None,
+        "thumbnail_path": str(thumbnail) if thumbnail else None,
         "info": info or {"url": url},
         "downloaded": False,
     }
@@ -137,6 +150,8 @@ def download_url(
         "-f", fmt,
         "--merge-output-format", "mp4",
         "--write-info-json",
+        "--write-thumbnail",
+        "--convert-thumbnails", "jpg",
         "--write-subs",
         "--write-auto-subs",
         "--sub-langs", "en.*",
@@ -159,11 +174,13 @@ def download_url(
         )
 
     subtitle = _pick_subtitle(out_dir)
+    thumbnail = _pick_thumbnail(out_dir)
     info = _read_info(out_dir / "video.info.json", url)
 
     return {
         "video_path": str(video),
         "subtitle_path": str(subtitle) if subtitle else None,
+        "thumbnail_path": str(thumbnail) if thumbnail else None,
         "info": info or {"url": url},
         "downloaded": True,
     }
