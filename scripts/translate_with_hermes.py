@@ -49,6 +49,22 @@ def ask(batch: list[str]) -> list[str]:
     return normalized
 
 
+def translate_batch(batch: list[str]) -> list[str]:
+    for attempt in range(1, 4):
+        try:
+            return ask(batch)
+        except ValueError:
+            if len(batch) > 1:
+                mid = len(batch) // 2
+                return translate_batch(batch[:mid]) + translate_batch(batch[mid:])
+            raise
+        except RuntimeError as exc:
+            if attempt == 3:
+                raise
+            print(f"retry batch: {exc}", flush=True)
+    raise AssertionError("unreachable")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project", type=Path, required=True)
@@ -61,15 +77,8 @@ def main() -> int:
     translated: list[str] = []
     for start in range(0, len(flat), args.batch_size):
         batch = flat[start:start + args.batch_size]
-        for attempt in range(1, 4):
-            try:
-                translated.extend(ask(batch))
-                print(f"translated {min(start + len(batch), len(flat))}/{len(flat)}", flush=True)
-                break
-            except Exception as exc:
-                if attempt == 3:
-                    raise
-                print(f"retry batch {start // args.batch_size + 1}: {exc}", flush=True)
+        translated.extend(translate_batch(batch))
+        print(f"translated {min(start + len(batch), len(flat))}/{len(flat)}", flush=True)
         
     if len(translated) != len(flat):
         raise SystemExit("translation count mismatch")

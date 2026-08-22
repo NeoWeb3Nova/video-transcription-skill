@@ -7,6 +7,7 @@ transcribe.py can parse them without needing Whisper.
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -76,6 +77,17 @@ def _caption_choice(out_dir: Path, raw_info: dict) -> tuple[Path | None, str]:
     return None, "none"
 
 
+def _yt_dlp_runtime_args() -> list[str]:
+    args = []
+    cookies = Path(os.environ.get("YTDLP_COOKIES", Path.home() / ".config/yt-dlp/youtube-cookies.txt"))
+    if cookies.exists():
+        args += ["--cookies", str(cookies)]
+    node = os.environ.get("YTDLP_NODE", "/home/neo/.local/bin/node")
+    if Path(node).exists():
+        args += ["--js-runtimes", f"node:{node}", "--remote-components", "ejs:github"]
+    return args
+
+
 def _pick_video(out_dir: Path) -> Path | None:
     for ext in (".mp4", ".mkv", ".webm", ".mov", ".m4a", ".mp3", ".opus"):
         for candidate in out_dir.glob(f"video*{ext}"):
@@ -101,8 +113,7 @@ def fetch_captions(url: str, out_dir: Path) -> dict:
 
     out_dir.mkdir(parents=True, exist_ok=True)
     output_template = str(out_dir / "video.%(ext)s")
-    cmd = [
-        "yt-dlp",
+    cmd = ["yt-dlp", *_yt_dlp_runtime_args(),
         "--skip-download",
         "--write-info-json",
         "--write-thumbnail",
@@ -170,9 +181,8 @@ def download_url(
     out_dir.mkdir(parents=True, exist_ok=True)
     output_template = str(out_dir / "video.%(ext)s")
 
-    fmt = "ba/bestaudio" if audio_only else "bv*[height<=720]+ba/b[height<=720]/bv+ba/b"
-    cmd = [
-        "yt-dlp",
+    fmt = "ba/bestaudio/b[height<=720]/18" if audio_only else "bv*[height<=720]+ba/b[height<=720]/bv+ba/b"
+    cmd = ["yt-dlp", *_yt_dlp_runtime_args(),
         "-N", "8",
         "-f", fmt,
         "--merge-output-format", "mp4",

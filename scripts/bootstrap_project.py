@@ -23,10 +23,17 @@ LOCAL_ASR = Path(os.environ.get(
 def transcribe_local(audio: str, audio_out: Path, transcript_out: Path) -> list[dict]:
     if not LOCAL_ASR.exists():
         return []
+    asr_root = LOCAL_ASR.parent.parent
+    cuda_libs = [
+        asr_root / "lib/python3.12/site-packages/nvidia/cublas/lib",
+        asr_root / "lib/python3.12/site-packages/nvidia/cudnn/lib",
+    ]
+    env = os.environ.copy()
+    env["LD_LIBRARY_PATH"] = ":".join(str(p) for p in cuda_libs if p.exists()) + ":" + env.get("LD_LIBRARY_PATH", "")
     subprocess.run([
         str(LOCAL_ASR), str(ROOT / "scripts/local_asr.py"),
         "--input", audio, "--audio-out", str(audio_out), "--output", str(transcript_out),
-    ], check=True)
+    ], check=True, env=env)
     return json.loads(transcript_out.read_text())["segments"]
 
 
