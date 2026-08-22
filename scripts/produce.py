@@ -547,8 +547,10 @@ def cmd_timeline() -> None:
     _append_hook(lines_bil, lines_kar, hooks["ending"],
                  json.loads((ending_mp3.with_suffix(".events.json")).read_text()),
                  ending_duration, ending_start, HOOK_ENDING)
-    (P / "subs/bilingual.ass").write_text(ASS_HEADER + "\n".join(lines_bil))
-    (P / "subs/karaoke_follow_gold.ass").write_text(ASS_HEADER + "\n".join(lines_kar))
+    subs = P / "subs"
+    subs.mkdir(parents=True, exist_ok=True)
+    (subs / "bilingual.ass").write_text(ASS_HEADER + "\n".join(lines_bil))
+    (subs / "karaoke_follow_gold.ass").write_text(ASS_HEADER + "\n".join(lines_kar))
     print(f"timeline ok: {len(lines_bil)} events, source_start={source_start:.3f}s ending_start={ending_start:.3f}s")
 
 
