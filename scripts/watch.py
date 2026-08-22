@@ -97,11 +97,11 @@ def main() -> int:
     if url_source:
         print("[watch] checking metadata/captions via yt-dlp…", file=sys.stderr)
         dl = fetch_captions(args.source, work / "download")
-        if dl.get("subtitle_path"):
+        if dl.get("subtitle_path") and dl.get("caption_source") == "youtube_manual":
             try:
                 transcript_segments = parse_vtt(dl["subtitle_path"])
                 transcript_text = format_transcript(transcript_segments)
-                transcript_source = "captions"
+                transcript_source = "youtube_manual"
             except Exception as exc:
                 print(f"[watch] subtitle parse failed: {exc}", file=sys.stderr)
                 transcript_segments = []
@@ -227,12 +227,12 @@ def main() -> int:
     if cue_frames:
         frames = merge_frames(frames, cue_frames)
 
-    if not transcript_segments and dl.get("subtitle_path"):
+    if not transcript_segments and dl.get("subtitle_path") and dl.get("caption_source") == "youtube_manual":
         try:
             all_segments = parse_vtt(dl["subtitle_path"])
             transcript_segments = filter_range(all_segments, start_sec, end_sec) if focused else all_segments
             transcript_text = format_transcript(transcript_segments)
-            transcript_source = "captions"
+            transcript_source = "youtube_manual"
         except Exception as exc:
             print(f"[watch] subtitle parse failed: {exc}", file=sys.stderr)
 

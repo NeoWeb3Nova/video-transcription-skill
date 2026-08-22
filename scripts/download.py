@@ -52,6 +52,30 @@ def _pick_subtitle(out_dir: Path) -> Path | None:
     return preferred[0] if preferred else candidates[0]
 
 
+def _read_raw_info(info_path: Path) -> dict:
+    if not info_path.exists():
+        return {}
+    try:
+        return json.loads(info_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def _caption_choice(out_dir: Path, raw_info: dict) -> tuple[Path | None, str]:
+    """Prefer a declared manual English track; never infer provenance from names."""
+    manual = raw_info.get("subtitles") or {}
+    automatic = raw_info.get("automatic_captions") or {}
+    manual_langs = [lang for lang in manual if lang == "en" or lang.startswith("en-")]
+    auto_langs = [lang for lang in automatic if lang == "en" or lang.startswith("en-")]
+    candidates = sorted(out_dir.glob("video*.vtt"))
+    if manual_langs:
+        preferred = [p for p in candidates if ".en." in p.name or ".en-US." in p.name or ".en-GB." in p.name]
+        return (preferred[0] if preferred else None), "youtube_manual" if preferred else "manual_unavailable"
+    if auto_langs:
+        return _pick_subtitle(out_dir), "youtube_auto"
+    return None, "none"
+
+
 def _pick_video(out_dir: Path) -> Path | None:
     for ext in (".mp4", ".mkv", ".webm", ".mov", ".m4a", ".mp3", ".opus"):
         for candidate in out_dir.glob(f"video*{ext}"):
@@ -95,7 +119,8 @@ def fetch_captions(url: str, out_dir: Path) -> dict:
         url,
     ]
     subprocess.run(cmd, stdout=sys.stderr, stderr=sys.stderr)
-    subtitle = _pick_subtitle(out_dir)
+    raw_info = _read_raw_info(out_dir / "video.info.json")
+    subtitle, caption_source = _caption_choice(out_dir, raw_info)
     thumbnail = _pick_thumbnail(out_dir)
     info = _read_info(out_dir / "video.info.json", url)
     if subtitle is None or not info.get("title"):
@@ -103,13 +128,15 @@ def fetch_captions(url: str, out_dir: Path) -> dict:
         # add more clients only when a real failure needs broader coverage.
         fallback = cmd[:1] + ["--extractor-args", "youtube:player_client=android"] + cmd[1:]
         subprocess.run(fallback, stdout=sys.stderr, stderr=sys.stderr)
-        subtitle = _pick_subtitle(out_dir)
+        raw_info = _read_raw_info(out_dir / "video.info.json")
+        subtitle, caption_source = _caption_choice(out_dir, raw_info)
         thumbnail = _pick_thumbnail(out_dir)
         info = _read_info(out_dir / "video.info.json", url)
     return {
         "video_path": None,
         "subtitle_path": str(subtitle) if subtitle else None,
         "thumbnail_path": str(thumbnail) if thumbnail else None,
+        "caption_source": caption_source,
         "info": info or {"url": url},
         "downloaded": False,
     }
@@ -119,7 +146,7 @@ def _read_info(info_path: Path, url: str) -> dict:
     info: dict = {}
     if info_path.exists():
         try:
-            raw = json.loads(info_path.read_text(encoding="utf-8"))
+            raw = _read_raw_info(info_path)
             info = {
                 "title": raw.get("title"),
                 "uploader": raw.get("uploader") or raw.get("channel"),
@@ -173,7 +200,8 @@ def download_url(
             f"yt-dlp did not produce a video file in {out_dir} (exit {result.returncode})"
         )
 
-    subtitle = _pick_subtitle(out_dir)
+    raw_info = _read_raw_info(out_dir / "video.info.json")
+    subtitle, caption_source = _caption_choice(out_dir, raw_info)
     thumbnail = _pick_thumbnail(out_dir)
     info = _read_info(out_dir / "video.info.json", url)
 
@@ -181,6 +209,7 @@ def download_url(
         "video_path": str(video),
         "subtitle_path": str(subtitle) if subtitle else None,
         "thumbnail_path": str(thumbnail) if thumbnail else None,
+        "caption_source": caption_source,
         "info": info or {"url": url},
         "downloaded": True,
     }

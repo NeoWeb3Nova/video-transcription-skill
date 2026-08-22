@@ -1,9 +1,12 @@
 from html import unescape
+import argparse
 from pathlib import Path
 import re
 from argostranslate import translate
 
-root = Path('projects/youtube-sE82v-zo7qs')
+parser = argparse.ArgumentParser()
+parser.add_argument("--project", type=Path, required=True)
+root = parser.parse_args().project.resolve()
 src = root / 'scripts/en.md'
 zh_dst = root / 'scripts/zh.md'
 translator = translate.get_translation_from_codes('en', 'zh')

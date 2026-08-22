@@ -34,6 +34,20 @@ def require_identity_gate(project: Path, auto: bool) -> None:
         raise SystemExit("blocked; identity gate must cover background, opening, and cover assets")
 
 
+def require_caption_provenance(project: Path) -> None:
+    require(project, "source/metadata.json")
+    try:
+        data = json.loads((project / "source/metadata.json").read_text())
+    except (OSError, json.JSONDecodeError) as exc:
+        raise SystemExit(f"blocked; invalid source/metadata.json: {exc}")
+    source = data.get("caption_source")
+    if source == "youtube_auto" or source not in {"youtube_manual", "local_whisper", "whisper_groq", "whisper_openai"}:
+        raise SystemExit(
+            "blocked; production requires youtube_manual or Whisper-retranscribed captions; "
+            f"found {source!r}"
+        )
+
+
 def run(project: Path, step: str) -> None:
     env = os.environ.copy()
     env["PROJECT_SLUG"] = project.name
@@ -65,6 +79,7 @@ def gate(project: Path, step: str, auto: bool = False) -> None:
     if step in {"hooks-tts", "timeline", "audio", "sample", "full"}:
         require(project, "work/hooks.json")
     if step in {"sample", "full"}:
+        require_caption_provenance(project)
         require_identity_gate(project, auto)
         require(project, "assets/background.png", "assets/opening.png", "assets/cover.png", "scripts/en.md", "scripts/zh.md", "work/paras.json", "audio/master.wav", "work/cover_approval.txt", "work/cover_typography_mode.txt")
         allowed = {"approved", "auto-approved"} if auto else {"approved"}

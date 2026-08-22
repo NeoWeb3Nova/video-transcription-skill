@@ -4,14 +4,30 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import subprocess
 from urllib.parse import parse_qs, urlparse
 import shutil
 from pathlib import Path
 
 from download import download, fetch_captions, is_url
 from transcribe import parse_vtt
+from whisper import load_api_key, transcribe_video
 
 ROOT = Path(__file__).resolve().parent.parent
+LOCAL_ASR = Path(os.environ.get(
+    "LOCAL_ASR_PYTHON", "/home/neo/.cache/video-transcription-asr/venv/bin/python"
+))
+
+
+def transcribe_local(audio: str, audio_out: Path, transcript_out: Path) -> list[dict]:
+    if not LOCAL_ASR.exists():
+        return []
+    subprocess.run([
+        str(LOCAL_ASR), str(ROOT / "scripts/local_asr.py"),
+        "--input", audio, "--audio-out", str(audio_out), "--output", str(transcript_out),
+    ], check=True)
+    return json.loads(transcript_out.read_text())["segments"]
 
 
 def canonical_youtube_slug(source: str) -> str | None:
@@ -46,21 +62,66 @@ def main() -> int:
         if is_url(args.source)
         else download(args.source, project / "source/raw")
     )
-    metadata = {"source": args.source, **fetched.get("info", {})}
-    (project / "source/metadata.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n")
+    metadata = {
+        "source": args.source,
+        **fetched.get("info", {}),
+        "caption_source": fetched.get("caption_source", "none"),
+    }
     if fetched.get("video_path"):
         video = Path(fetched["video_path"])
         shutil.copy2(video, project / f"source/video{video.suffix}")
     if fetched.get("thumbnail_path"):
         shutil.copy2(fetched["thumbnail_path"], project / "source/identity_reference.jpg")
     subtitle = fetched.get("subtitle_path")
-    cues = parse_vtt(subtitle) if subtitle else []
-    if subtitle:
+    caption_source = fetched.get("caption_source", "none")
+    if caption_source in {"youtube_auto", "manual_unavailable", "none"}:
+        derived_from = caption_source
+        backend, api_key = load_api_key()
+        audio = fetched.get("video_path")
+        if not audio:
+            audio = download(args.source, project / "source/raw", audio_only=True).get("video_path")
+        if not audio:
+            raise SystemExit("blocked; untrusted/missing captions require an audio download for Whisper")
+        transcript_path = project / "source/raw/whisper.en.json"
+        if LOCAL_ASR.exists():
+            cues = transcribe_local(audio, project / "source/raw/whisper_audio.wav", transcript_path)
+            caption_source = "local_whisper"
+            caption_model = os.environ.get("ASR_MODEL", "large-v3")
+        else:
+            if not backend or not api_key:
+                raise SystemExit(
+                    "blocked; local ASR is not installed and no GROQ_API_KEY or OPENAI_API_KEY is configured"
+                )
+            cues, used_backend = transcribe_video(
+                audio,
+                project / "source/raw/whisper_audio.mp3",
+                backend=backend,
+                api_key=api_key,
+            )
+            transcript_path.write_text(json.dumps(cues, ensure_ascii=False, indent=2) + "\n")
+            caption_source = f"whisper_{used_backend}"
+            caption_model = "whisper-large-v3" if used_backend == "groq" else "whisper-1"
+        metadata.update({
+            "caption_source": caption_source,
+            "caption_derived_from": derived_from,
+            "caption_verified": False,
+            "caption_model": caption_model,
+        })
+    else:
+        cues = parse_vtt(subtitle) if subtitle else []
+        metadata.update({
+            "caption_verified": caption_source == "youtube_manual",
+        })
+    (project / "source/metadata.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n")
+    if cues:
         # One cue per paragraph is deliberately boring but preserves source order.
         (project / "scripts/en.md").write_text("\n\n".join(c["text"] for c in cues) + "\n")
-        shutil.copy2(subtitle, project / "source/raw/source.en.vtt")
+        if subtitle:
+            shutil.copy2(subtitle, project / "source/raw/source.en.vtt")
     else:
         (project / "scripts/en.md").write_text("")
+    if subtitle and not cues:
+        shutil.copy2(subtitle, project / "source/raw/source.en.vtt")
     if args.overview:
         overview = args.overview.expanduser().resolve()
         if not overview.exists():

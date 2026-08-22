@@ -59,7 +59,7 @@ For Chinese covers, always use a model-typeset poster. The image model must art-
 - preserve timestamps for important claims;
 - mark uncertain recognition as `[unclear]` or `[疑似：...]` instead of inventing words;
 - distinguish verbatim quotes from edited summaries;
-- translate directly with the language model when requested; do not install translation libraries.
+- translate with the active Hermes model via `scripts/translate_with_hermes.py`; do not use Argos Translate for production copy.
 
 9. Choose the requested output:
 
@@ -72,7 +72,21 @@ For Chinese covers, always use a model-typeset poster. The image model must art-
 
 ## Transcription sources
 
-The script prefers native captions from `yt-dlp`. If captions are unavailable, it extracts mono 16 kHz audio with `ffmpeg` and can use Whisper through Groq or OpenAI.
+`yt-dlp` records caption provenance from its `subtitles` and
+`automatic_captions` metadata. Declared manual English captions are preferred
+and marked `youtube_manual`. Automatic captions are never production truth:
+the bootstrap extracts local 16 kHz mono audio and re-transcribes it with the
+isolated local `faster-whisper` large-v3 model when available, otherwise with
+`whisper-large-v3` through Groq or `whisper-1` through OpenAI. It saves
+`source/raw/whisper.en.json` and marks the project `local_whisper`,
+`whisper_groq`, or `whisper_openai`. The production gate
+rejects `youtube_auto` projects so raw automatic captions cannot silently reach
+translation, TTS, or rendering.
+
+If captions are unavailable, the same Whisper fallback is used when an API key
+is configured. Local/remote transcription must remain auditable in
+`source/metadata.json`; missing credentials fail closed instead of using an
+unverified automatic track.
 
 Configure optional fallback keys in `~/.config/watch/.env`:
 
@@ -82,6 +96,21 @@ OPENAI_API_KEY=...
 ```
 
 Do not commit this file or share API keys. Without a key, videos with no native captions can still be inspected visually, but speech transcription may be unavailable.
+
+### Local ASR setup
+
+For offline production on an NVIDIA GPU, install the isolated backend once:
+
+```bash
+uv venv /home/neo/.cache/video-transcription-asr/venv --python python3.12
+uv pip install --python /home/neo/.cache/video-transcription-asr/venv/bin/python faster-whisper
+```
+
+The default model is `large-v3`, using CUDA `int8_float16` on the RTX 4060
+class GPU. `scripts/local_asr.py` extracts 16 kHz mono PCM audio with the
+repository FFmpeg binary and writes word-timestamped JSON. Set
+`LOCAL_ASR_PYTHON`, `ASR_MODEL`, `ASR_DEVICE`, or `ASR_COMPUTE_TYPE` only when
+the default local backend needs to be changed.
 
 ## Commands
 

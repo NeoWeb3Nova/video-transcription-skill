@@ -63,6 +63,18 @@ def _dedupe(segments: list[dict]) -> list[dict]:
             out[-1]["text"] = seg["text"]
             out[-1]["end"] = seg["end"]
             continue
+        if out:
+            previous = out[-1]["text"].split()
+            current = seg["text"].split()
+            overlap = max(
+                (size for size in range(2, min(len(previous), len(current)) + 1)
+                 if previous[-size:] == current[:size]),
+                default=1 if previous[-1:] == current[:1] and re.search(r"[.!?]$", previous[-1]) else 0,
+            )
+            if overlap:
+                out[-1]["text"] = " ".join(previous + current[overlap:])
+                out[-1]["end"] = seg["end"]
+                continue
         out.append(seg)
     return out
 
