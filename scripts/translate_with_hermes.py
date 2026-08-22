@@ -38,8 +38,9 @@ def ask(batch: list[str]) -> list[str]:
     text = text[text.find("{"):] if "{" in text else text
     data = json.loads(text)
     out = data.get("translations")
-    if not isinstance(out, list) or len(out) != len(batch) or not all(isinstance(x, str) and x.strip() for x in out):
-        raise ValueError(f"Hermes returned invalid translation count: expected {len(batch)}")
+    if (not isinstance(out, list) or len(out) != len(batch)
+            or not all(isinstance(x, str) and x.strip() and re.search(r"[\u4e00-\u9fff]", x) for x in out)):
+        raise ValueError(f"Hermes returned invalid translation count/content: expected {len(batch)}")
     normalized = []
     for x in out:
         x = re.sub(r"\s+", " ", x).strip(" ，。")

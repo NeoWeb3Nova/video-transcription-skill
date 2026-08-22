@@ -113,6 +113,11 @@ def main() -> int:
             "caption_verified": caption_source == "youtube_manual",
         })
     (project / "source/metadata.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n")
+    timing = [
+        {"para": i, "start": float(c["start"]), "end": float(c["end"])}
+        for i, c in enumerate(cues, 1) if "start" in c and "end" in c
+    ]
+    (project / "work/source_timing.json").write_text(json.dumps(timing, indent=2) + "\n")
     if cues:
         # One cue per paragraph is deliberately boring but preserves source order.
         (project / "scripts/en.md").write_text("\n\n".join(c["text"] for c in cues) + "\n")

@@ -83,6 +83,12 @@ isolated local `faster-whisper` large-v3 model when available, otherwise with
 rejects `youtube_auto` projects so raw automatic captions cannot silently reach
 translation, TTS, or rendering.
 
+The ASR segment boundaries are authoritative for bilingual alignment. Bootstrap
+persists them as `work/source_timing.json`; Hermes translates each segment in
+order without merging across boundaries. TTS may have different absolute
+durations, so rendered subtitle timing still follows the real generated audio,
+while the original segment structure remains one-to-one.
+
 If captions are unavailable, the same Whisper fallback is used when an API key
 is configured. Local/remote transcription must remain auditable in
 `source/metadata.json`; missing credentials fail closed instead of using an
@@ -111,6 +117,25 @@ class GPU. `scripts/local_asr.py` extracts 16 kHz mono PCM audio with the
 repository FFmpeg binary and writes word-timestamped JSON. Set
 `LOCAL_ASR_PYTHON`, `ASR_MODEL`, `ASR_DEVICE`, or `ASR_COMPUTE_TYPE` only when
 the default local backend needs to be changed.
+
+### Optional local TTS backend
+
+Edge TTS remains the default. After deploying the isolated CosyVoice2
+environment and model, opt in per run with:
+
+```bash
+TTS_BACKEND=cosyvoice \
+COSYVOICE_PYTHON=/home/neo/.cache/cosyvoice/venv/bin/python \
+COSYVOICE_ROOT=/home/neo/.cache/cosyvoice/CosyVoice \
+COSYVOICE_MODEL_DIR=/home/neo/.cache/cosyvoice/models/CosyVoice2-0.5B \
+python3 scripts/run_pipeline.py --project projects/<slug> --step prepare --auto
+```
+
+`scripts/cosyvoice_tts.py` generates each Chinese sentence separately and
+records its real duration, so local TTS preserves the existing subtitle timing
+contract. Set `COSYVOICE_PROMPT_AUDIO` and `COSYVOICE_PROMPT_TEXT` to choose a
+consented reference voice. Omit `TTS_BACKEND` or set it to `edge` to keep the
+current `zh-CN-YunjianNeural` path.
 
 ## Commands
 

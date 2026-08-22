@@ -40,6 +40,10 @@ SILENCE_S = 0.35
 SENTENCE_GAP_S = 0.05
 MUSIC_TAIL_S = 4.0
 VOICE = "zh-CN-YunjianNeural"
+TTS_BACKEND = os.environ.get("TTS_BACKEND", "edge").lower()
+LOCAL_TTS_PYTHON = Path(os.environ.get(
+    "COSYVOICE_PYTHON", "/home/neo/.cache/cosyvoice/venv/bin/python"
+))
 
 HOOK_INTRO = "HOOK_INTRO"
 SOURCE = "SOURCE"
@@ -229,6 +233,14 @@ def cmd_manifest(*, no_hooks: bool = False) -> None:
         se, sz = sentences(e), sentences(z)
         assert len(se) == len(sz), f"para {i}: sentence mismatch en={len(se)} zh={len(sz)}"
         paras.append({"para": i, "zh": sz, "en": se})
+    timing_path = P / "work/source_timing.json"
+    assert timing_path.exists(), "missing work/source_timing.json"
+    timing = json.loads(timing_path.read_text())
+    assert len(timing) == len(paras), f"source timing mismatch segments={len(timing)} paragraphs={len(paras)}"
+    previous_end = -1.0
+    for i, item in enumerate(timing, 1):
+        assert item.get("para") == i and item["end"] > item["start"] >= previous_end, f"invalid source timing para {i}"
+        previous_end = item["end"]
     work = P / "work"
     work.mkdir(parents=True, exist_ok=True)
     (work / "paras.json").write_text(json.dumps(paras, ensure_ascii=False, indent=1))
@@ -276,6 +288,24 @@ def cmd_hooks_tts() -> None:
     manifest = ensure_hooks()
     out_dir = P / "work/tts/hooks"
     out_dir.mkdir(parents=True, exist_ok=True)
+    if TTS_BACKEND == "cosyvoice":
+        if not LOCAL_TTS_PYTHON.exists():
+            raise SystemExit(f"local TTS backend unavailable: {LOCAL_TTS_PYTHON}")
+        spec = out_dir / "cosyvoice_hooks.json"
+        spec.write_text(json.dumps([
+            {"para": 1, "zh": [manifest["intro"]["zh"]]},
+            {"para": 2, "zh": [manifest["ending"]["zh"]]},
+        ], ensure_ascii=False))
+        run([str(LOCAL_TTS_PYTHON), str(ROOT / "scripts/cosyvoice_tts.py"), "--paras", str(spec), "--out-dir", str(out_dir)])
+        for source, target in (("para01", "intro"), ("para02", "ending")):
+            for suffix in (".mp3", ".events.json"):
+                (out_dir / f"{source}{suffix}").replace(out_dir / f"{target}{suffix}")
+        spec.unlink(missing_ok=True)
+        (out_dir / "progress.json").write_text(json.dumps({
+            "hooks_fingerprint": hooks_fingerprint(manifest), "intro": "ok", "ending": "ok"
+        }, indent=1) + "\n")
+        print("hooks-tts done: CosyVoice intro and ending")
+        return
     progress_path = out_dir / "progress.json"
     progress = json.loads(progress_path.read_text()) if progress_path.exists() else {}
     if not isinstance(progress, dict):
@@ -318,6 +348,12 @@ def cmd_hooks_tts() -> None:
 
 def cmd_tts() -> None:
     paras = json.loads((P / "work/paras.json").read_text())
+    if TTS_BACKEND == "cosyvoice":
+        if not LOCAL_TTS_PYTHON.exists():
+            raise SystemExit(f"local TTS backend unavailable: {LOCAL_TTS_PYTHON}")
+        run([str(LOCAL_TTS_PYTHON), str(ROOT / "scripts/cosyvoice_tts.py"),
+             "--paras", str(P / "work/paras.json"), "--out-dir", str(P / "work/tts/zh")])
+        return
     progress = P / "work/tts/zh/progress.json"
     done = json.loads(progress.read_text()) if progress.exists() else {}
     todo = [p for p in paras if str(p["para"]) not in done or done[str(p["para"])] != "ok"]

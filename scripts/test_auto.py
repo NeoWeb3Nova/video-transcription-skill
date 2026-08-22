@@ -12,7 +12,7 @@ with tempfile.TemporaryDirectory() as raw:
     project = Path(raw)
     for name in ("assets/background.png", "assets/opening.png", "assets/cover.png",
                  "scripts/en.md", "scripts/zh.md", "work/paras.json",
-                 "audio/master.wav", "work/hooks.json", "work/cover_typography_mode.txt"):
+                 "work/source_timing.json", "audio/master.wav", "work/hooks.json", "work/cover_typography_mode.txt"):
         path = project / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("model-typeset" if path.name == "cover_typography_mode.txt" else "x")

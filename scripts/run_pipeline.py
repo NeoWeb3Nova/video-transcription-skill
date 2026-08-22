@@ -81,7 +81,7 @@ def gate(project: Path, step: str, auto: bool = False) -> None:
     if step in {"sample", "full"}:
         require_caption_provenance(project)
         require_identity_gate(project, auto)
-        require(project, "assets/background.png", "assets/opening.png", "assets/cover.png", "scripts/en.md", "scripts/zh.md", "work/paras.json", "audio/master.wav", "work/cover_approval.txt", "work/cover_typography_mode.txt")
+        require(project, "assets/background.png", "assets/opening.png", "assets/cover.png", "scripts/en.md", "scripts/zh.md", "work/paras.json", "work/source_timing.json", "audio/master.wav", "work/cover_approval.txt", "work/cover_typography_mode.txt")
         allowed = {"approved", "auto-approved"} if auto else {"approved"}
         if (project / "work/cover_approval.txt").read_text().strip() not in allowed:
             raise SystemExit("blocked; user must approve work/cover_approval.txt before rendering")
